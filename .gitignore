@@ -1,0 +1,63 @@
+# Misc
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.idea/
+.vscode/
+
+# Flutter / Dart / Packages
+.dart_tool/
+.packages
+.pub/
+build/
+
+# Generated plugin registrants
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# Coverage
+coverage/
+
+# Android
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/local.properties
+android/key.properties
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/App.framework
+ios/Flutter/Generated.xcconfig
+
+# macOS
+macos/Pods/
+
+# Windows
+windows/flutter/ephemeral/
+
+# Linux
+linux/flutter/ephemeral/
+
+# Web
+build/web/
+
+# Firebase / Secrets / Env
+.env
+.env.*
+google-services.json
+GoogleService-Info.plist
+
+# Keystore / Signing
+*.jks
+*.keystore
+
+# Crash / temp
+*.tmp
+*.temp
