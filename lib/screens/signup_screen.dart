@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sample/config/api.dart';
 import 'package:sample/screens/login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -25,7 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://10.0.2.2:8080/signup"),
+        Uri.parse("${ApiConfig.baseUrl}/signup"),
         headers: {
           "Content-Type": "application/json",
         },

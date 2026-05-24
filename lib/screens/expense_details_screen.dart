@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sample/screens/settle_up_screen.dart';
 
 class ExpenseDetailsScreen extends StatelessWidget {
-  const ExpenseDetailsScreen({super.key});
+  const ExpenseDetailsScreen({super.key, required int groupId});
 
   @override
   Widget build(BuildContext context) {

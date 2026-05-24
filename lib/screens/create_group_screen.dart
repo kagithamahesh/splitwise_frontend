@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sample/config/api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateGroupScreen extends StatefulWidget {
@@ -51,7 +52,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       String? token = prefs.getString("token");
 
       final response = await http.get(
-        Uri.parse("http://10.0.2.2:8080/users"),
+        Uri.parse("${ApiConfig.baseUrl}/users"),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
@@ -124,7 +125,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       String? token = prefs.getString("token");
 
       final response = await http.post(
-        Uri.parse("http://10.0.2.2:8080/groups"),
+        Uri.parse("${ApiConfig.baseUrl}/groups"),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",

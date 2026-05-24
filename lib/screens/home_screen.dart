@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sample/config/api.dart';
 import 'package:sample/screens/group_details_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -35,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
       String? token = prefs.getString("token");
 
       final response = await http.get(
-        Uri.parse("http://10.0.2.2:8080/home"),
+        Uri.parse("${ApiConfig.baseUrl}/home"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -282,14 +283,14 @@ class _HomeScreenState extends State<HomeScreen> {
               if (groups.isNotEmpty)
                 ...groups.map<Widget>((group) {
                   int balance = group["balance"] ?? 0;
-
+                  print(group);
                   return GestureDetector(
                     onTap: () async {
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => GroupDetailsScreen(
-                            groupId: group["group_id"],
+                            groupId: group["id"],
                             groupName: group["name"],
                           ),
                         ),

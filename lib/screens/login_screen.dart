@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sample/config/api.dart';
 import 'package:sample/screens/home_screen.dart';
 import 'package:sample/screens/signup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-          "http://10.0.2.2:8080/login",
+          "${ApiConfig.baseUrl}/login",
         ),
         headers: {
           "Content-Type": "application/json",
