@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sample/screens/group_details_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'add_expense_screen.dart';
@@ -56,9 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> goToCreateGroup() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const CreateGroupScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
     );
 
     if (result == true) {
@@ -79,9 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xffF8F9FF),
 
       body: isLoading
-          ? const Center(
-        child: CircularProgressIndicator(),
-      )
+          ? const Center(child: CircularProgressIndicator())
           : pages[selectedIndex],
 
       floatingActionButton: FloatingActionButton(
@@ -90,11 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const AddExpenseScreen(
-
-              ),
-            ),
+            MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
           );
         },
       ),
@@ -158,10 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const Text(
                 "Manage your shared expenses easily",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
 
               const SizedBox(height: 25),
@@ -172,10 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0xff5B4BFF),
-                      Color(0xff6A5CFF),
-                    ],
+                    colors: [Color(0xff5B4BFF), Color(0xff6A5CFF)],
                   ),
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -184,10 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Text(
                       "Total Balance",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -231,10 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Text(
                     "Groups",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   TextButton(
                     onPressed: goToCreateGroup,
@@ -302,12 +283,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 ...groups.map<Widget>((group) {
                   int balance = group["balance"] ?? 0;
 
-                  return groupTile(
-                    icon: Icons.group,
-                    title: group["name"] ?? "",
-                    subtitle: "${group["members"] ?? 0} members",
-                    amount: "₹ $balance",
-                    color: balance >= 0 ? Colors.green : Colors.red,
+                  return GestureDetector(
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GroupDetailsScreen(
+                            groupId: group["group_id"],
+                            groupName: group["name"],
+                          ),
+                        ),
+                      );
+
+                      if (result == true) {
+                        fetchHomeData();
+                      }
+                    },
+
+                    child: groupTile(
+                      icon: Icons.group,
+                      title: group["name"] ?? "",
+                      subtitle: "${group["members"] ?? 0} members",
+                      amount: "₹ $balance",
+                      color: balance >= 0 ? Colors.green : Colors.red,
+                    ),
                   );
                 }).toList(),
 
@@ -315,10 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const Text(
                 "Friends",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 15),
@@ -344,9 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? "${friend["name"]} owes you"
                         : "You owe ${friend["name"]}",
                     "₹ ${friend["amount"]}",
-                    friend["type"] == "owes_you"
-                        ? Colors.green
-                        : Colors.red,
+                    friend["type"] == "owes_you" ? Colors.green : Colors.red,
                   );
                 }).toList(),
 
@@ -414,51 +408,33 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.grey),
-                ),
+                Text(subtitle, style: const TextStyle(color: Colors.grey)),
               ],
             ),
           ),
 
           Text(
             amount,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          )
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 
-  Widget friendTile(
-      String title,
-      String amount,
-      Color color,
-      ) {
+  Widget friendTile(String title, String amount, Color color) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const CircleAvatar(
         backgroundColor: Color(0xffEEEAFE),
-        child: Icon(
-          Icons.person,
-          color: Color(0xff5B4BFF),
-        ),
+        child: Icon(Icons.person, color: Color(0xff5B4BFF)),
       ),
       title: Text(title),
       trailing: Text(
         amount,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.bold),
       ),
     );
   }

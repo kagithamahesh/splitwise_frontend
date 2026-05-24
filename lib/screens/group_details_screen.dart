@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sample/screens/expense_details_screen.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
-  const GroupDetailsScreen({super.key});
+  const GroupDetailsScreen({super.key, required groupId, required groupName});
 
   @override
   State<GroupDetailsScreen> createState() => _GroupDetailsScreenState();
