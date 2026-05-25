@@ -86,10 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xff5B4BFF),
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
-          );
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (_) => const AddExpenseScreen(groupId: null, members: [],)),
+          // );
         },
       ),
 

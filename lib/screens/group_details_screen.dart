@@ -3,438 +3,582 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sample/config/api.dart';
+import 'package:sample/screens/add_expense_screen.dart';
+import 'package:sample/screens/add_member_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'expense_details_screen.dart';
-
 class GroupDetailsScreen extends StatefulWidget {
+
   final int groupId;
-  final String groupName;
 
   const GroupDetailsScreen({
     super.key,
-    required this.groupId,
-    required this.groupName,
+    required this.groupId, required groupName,
   });
 
   @override
-  State<GroupDetailsScreen> createState() => _GroupDetailsScreenState();
+  State<GroupDetailsScreen> createState() =>
+      _GroupDetailsScreenState();
 }
 
-class _GroupDetailsScreenState extends State<GroupDetailsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController tabController;
+class _GroupDetailsScreenState
+    extends State<GroupDetailsScreen> {
+
+  Map<String, dynamic>? groupData;
 
   bool isLoading = true;
-
-  Map<String, dynamic> groupData = {};
-
-  List expenses = [];
-  List members = [];
-  List balances = [];
 
   @override
   void initState() {
     super.initState();
-
-    tabController = TabController(length: 3, vsync: this);
-
     fetchGroupDetails();
   }
 
-  @override
-  void dispose() {
-    tabController.dispose();
-    super.dispose();
-  }
-
-  // ==========================
-  // FETCH GROUP DETAILS
-  // ==========================
   Future<void> fetchGroupDetails() async {
+
     try {
       final prefs = await SharedPreferences.getInstance();
-
       String? token = prefs.getString("token");
-
       final response = await http.get(
-        Uri.parse("${ApiConfig.baseUrl}/groups/${widget.groupId}"),
+        Uri.parse(
+          "${ApiConfig.baseUrl}/groups/${widget.groupId}",
+        ),
         headers: {
-          "Authorization": "Bearer $token",
           "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
         },
       );
 
-      final data = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
+
         setState(() {
-          groupData = data;
 
-          expenses = data["expenses"] ?? [];
+          groupData =
+              jsonDecode(response.body);
 
-          members = data["members"] ?? [];
-
-          balances = data["balances"] ?? [];
+          isLoading = false;
         });
-      } else {
-        debugPrint(data.toString());
-      }
-    } catch (e) {
-      debugPrint(e.toString());
-    }
 
-    setState(() {
-      isLoading = false;
-    });
+      } else {
+
+        setState(() {
+          isLoading = false;
+        });
+
+        print("API Error");
+      }
+
+    } catch (e) {
+
+      setState(() {
+        isLoading = false;
+      });
+
+      print(e);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: const Color(0xffF8F9FF),
 
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xff5B4BFF),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16),
 
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  ExpenseDetailsScreen(groupId: widget.groupId),
-            ),
-          );
+        child: Row(
+          children: [
 
-          if (result == true) {
-            fetchGroupDetails();
-          }
-        },
+            Expanded(
+              child: OutlinedButton.icon(
 
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-
-                              icon: const Icon(Icons.arrow_back),
-                            ),
-
-                            Expanded(
-                              child: Text(
-                                widget.groupName,
-
-                                textAlign: TextAlign.center,
-
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(width: 48),
-                          ],
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        Text(
-                          "${members.length} Members",
-
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // =====================
-                        // TOTAL SPENT CARD
-                        // =====================
-                        Container(
-                          width: double.infinity,
-
-                          padding: const EdgeInsets.all(22),
-
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xff5B4BFF), Color(0xff6A5CFF)],
-                            ),
-
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-
-                            children: [
-                              const Text(
-                                "Total Spent",
-
-                                style: TextStyle(color: Colors.white70),
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              Text(
-                                "₹ ${groupData["totalExpense"] ?? 0}",
-
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: summaryCard(
-                                title: "You Owe",
-
-                                amount: "₹ ${groupData["youOwe"] ?? 0}",
-
-                                color: Colors.red,
-                              ),
-                            ),
-
-                            const SizedBox(width: 15),
-
-                            Expanded(
-                              child: summaryCard(
-                                title: "You Get",
-
-                                amount: "₹ ${groupData["youGet"] ?? 0}",
-
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                style: OutlinedButton.styleFrom(
+                  padding:
+                  const EdgeInsets.symmetric(
+                    vertical: 16,
                   ),
 
-                  // =========================
-                  // TAB BAR
-                  // =========================
-                  TabBar(
-                    controller: tabController,
-
-                    labelColor: const Color(0xff5B4BFF),
-
-                    unselectedLabelColor: Colors.grey,
-
-                    indicatorColor: const Color(0xff5B4BFF),
-
-                    tabs: const [
-                      Tab(text: "Expenses"),
-                      Tab(text: "Members"),
-                      Tab(text: "Balances"),
-                    ],
+                  side: const BorderSide(
+                    color: Colors.deepPurple,
                   ),
 
-                  Expanded(
-                    child: TabBarView(
-                      controller: tabController,
-
-                      children: [expensesTab(), membersTab(), balancesTab()],
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                    BorderRadius.circular(14),
                   ),
-                ],
+                ),
+
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AddExpenseScreen(groupId: widget.groupId, members: groupData?['members'],))
+                  );
+                },
+
+                icon:
+                const Icon(Icons.receipt_long),
+
+                label:
+                const Text("Add Expense"),
               ),
             ),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: ElevatedButton.icon(
+
+                style: ElevatedButton.styleFrom(
+
+                  backgroundColor:
+                  Colors.deepPurple,
+
+                  foregroundColor:
+                  Colors.white,
+
+                  padding:
+                  const EdgeInsets.symmetric(
+                    vertical: 16,
+                  ),
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                    BorderRadius.circular(14),
+                  ),
+                ),
+
+                onPressed: () {
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AddMemberScreen(groupId: widget.groupId))
+                  );
+                },
+
+                icon:
+                const Icon(Icons.group_add),
+
+                label:
+                const Text("Add Member"),
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      appBar: AppBar(
+
+        backgroundColor: Colors.white,
+
+        elevation: 0,
+
+        leading:  IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.black,
+          ),
+
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+
+        title: Text(
+          groupData?['name'] ?? "",
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        centerTitle: true,
+      ),
+
+      body: SingleChildScrollView(
+
+        padding:
+        const EdgeInsets.symmetric(
+          horizontal: 18,
+        ),
+
+        child: Column(
+
+          crossAxisAlignment:
+          CrossAxisAlignment.start,
+
+          children: [
+
+            const SizedBox(height: 10),
+
+            /// HEADER
+            Row(
+              children: [
+
+                CircleAvatar(
+                  radius: 40,
+
+                  backgroundColor:
+                  Colors.blue.shade100,
+
+                  child: const Icon(
+                    Icons.group,
+                    size: 40,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                Column(
+
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
+                  children: [
+
+                    Text(
+                      groupData?['name'] ?? "",
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight:
+                        FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      "${groupData?['members']?.length ?? 0} Members",
+                      style: const TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            /// SUMMARY CARDS
+            Row(
+              children: [
+
+                Expanded(
+                  child: SummaryCard(
+                    title: "Total\nExpense",
+
+                    amount:
+                    "₹ ${groupData?['totalExpense']}",
+
+                    amountColor:
+                    Colors.deepPurple,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: SummaryCard(
+                    title: "You\nOwe",
+
+                    amount:
+                    "₹ ${groupData?['youOwe']}",
+
+                    amountColor:
+                    Colors.red,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: SummaryCard(
+                    title: "You\nGet",
+
+                    amount:
+                    "₹ ${groupData?['youGet']}",
+
+                    amountColor:
+                    Colors.green,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            /// MEMBERS HEADER
+            Text(
+              "Members (${groupData?['members']?.length ?? 0})",
+
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            /// MEMBERS LIST
+            ListView.builder(
+
+              shrinkWrap: true,
+
+              physics:
+              const NeverScrollableScrollPhysics(),
+
+              itemCount:
+              groupData?['members']?.length ?? 0,
+
+              itemBuilder: (context, index) {
+
+                final member =
+                groupData!['members'][index];
+
+                return MemberTile(
+                  name: member['name'],
+                  email: member['email'],
+                );
+              },
+            ),
+
+            const SizedBox(height: 30),
+
+            /// EXPENSES HEADER
+            const Text(
+              "Recent Expenses",
+
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            /// EXPENSES LIST
+            ListView.builder(
+
+              shrinkWrap: true,
+
+              physics:
+              const NeverScrollableScrollPhysics(),
+
+              itemCount:
+              groupData?['expenses']?.length ?? 0,
+
+              itemBuilder: (context, index) {
+
+                final expense =
+                groupData!['expenses'][index];
+
+                return ExpenseTile(
+                  title:
+                  expense['title'] ?? "",
+
+                  paidBy:
+                  expense['paid_by'] ?? "",
+
+                  amount:
+                  "₹ ${expense['amount'] ?? 0}",
+
+                  date:
+                  expense['date'] ?? "",
+                );
+              },
+            ),
+
+            const SizedBox(height: 100),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  // ==========================
-  // SUMMARY CARD
-  // ==========================
-  static Widget summaryCard({
-    required String title,
-    required String amount,
-    required Color color,
-  }) {
+class SummaryCard extends StatelessWidget {
+
+  final String title;
+  final String amount;
+  final Color amountColor;
+
+  const SummaryCard({
+    super.key,
+    required this.title,
+    required this.amount,
+    required this.amountColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
     return Container(
-      padding: const EdgeInsets.all(16),
+
+      padding:
+      const EdgeInsets.symmetric(
+        vertical: 18,
+      ),
 
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+
+        color: Colors.grey.shade100,
+
+        borderRadius:
+        BorderRadius.circular(18),
       ),
 
       child: Column(
         children: [
-          Text(title),
 
-          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+
+            style: const TextStyle(
+              color: Colors.grey,
+            ),
+          ),
+
+          const SizedBox(height: 10),
 
           Text(
             amount,
 
             style: TextStyle(
-              color: color,
+              color: amountColor,
               fontWeight: FontWeight.bold,
-              fontSize: 20,
+              fontSize: 18,
             ),
-          ),
+          )
         ],
       ),
     );
   }
+}
 
-  // ==========================
-  // EXPENSE TAB
-  // ==========================
-  Widget expensesTab() {
-    if (expenses.isEmpty) {
-      return const Center(child: Text("No expenses yet"));
-    }
+class MemberTile extends StatelessWidget {
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
+  final String name;
+  final String email;
 
-      itemCount: expenses.length,
+  const MemberTile({
+    super.key,
+    required this.name,
+    required this.email,
+  });
 
-      itemBuilder: (context, index) {
-        final expense = expenses[index];
+  @override
+  Widget build(BuildContext context) {
 
-        return expenseTile(
-          expense["title"] ?? "",
-          "${expense["paidBy"] ?? "Unknown"} paid",
-          "₹ ${expense["amount"] ?? 0}",
-        );
-      },
-    );
-  }
+    return ListTile(
 
-  // ==========================
-  // EXPENSE TILE
-  // ==========================
-  Widget expenseTile(String title, String subtitle, String amount) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      contentPadding: EdgeInsets.zero,
 
-      padding: const EdgeInsets.all(16),
+      leading: CircleAvatar(
+        backgroundColor:
+        Colors.orange.shade100,
 
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        child: const Icon(
+          Icons.person,
+          color: Colors.black,
+        ),
       ),
 
-      child: Row(
+      title: Text(
+        name,
+
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+
+      subtitle: Text(email),
+    );
+  }
+}
+
+class ExpenseTile extends StatelessWidget {
+
+  final String title;
+  final String paidBy;
+  final String amount;
+  final String date;
+
+  const ExpenseTile({
+    super.key,
+    required this.title,
+    required this.paidBy,
+    required this.amount,
+    required this.date,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    return ListTile(
+
+      contentPadding: EdgeInsets.zero,
+
+      leading: CircleAvatar(
+        backgroundColor:
+        Colors.green.shade100,
+
+        child: const Icon(
+          Icons.receipt,
+          color: Colors.black,
+        ),
+      ),
+
+      title: Text(
+        title,
+
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+
+      subtitle: Text(paidBy),
+
+      trailing: Column(
+
+        mainAxisAlignment:
+        MainAxisAlignment.center,
+
+        crossAxisAlignment:
+        CrossAxisAlignment.end,
+
         children: [
-          const CircleAvatar(
-            backgroundColor: Color(0xffEEEAFE),
 
-            child: Icon(Icons.receipt_long, color: Color(0xff5B4BFF)),
-          ),
+          Text(
+            amount,
 
-          const SizedBox(width: 14),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              children: [
-                Text(
-                  title,
-
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-
-                Text(subtitle, style: const TextStyle(color: Colors.grey)),
-              ],
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
 
-          Text(amount, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+
+          Text(
+            date,
+
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          )
         ],
       ),
-    );
-  }
-
-  // ==========================
-  // MEMBERS TAB
-  // ==========================
-  Widget membersTab() {
-    if (members.isEmpty) {
-      return const Center(child: Text("No members"));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-
-      itemCount: members.length,
-
-      itemBuilder: (context, index) {
-        final member = members[index];
-
-        return ListTile(
-          leading: const CircleAvatar(
-            backgroundColor: Color(0xffEEEAFE),
-
-            child: Icon(Icons.person, color: Color(0xff5B4BFF)),
-          ),
-
-          title: Text(member["name"] ?? ""),
-
-          subtitle: Text(member["email"] ?? ""),
-        );
-      },
-    );
-  }
-
-  // ==========================
-  // BALANCES TAB
-  // ==========================
-  Widget balancesTab() {
-    if (balances.isEmpty) {
-      return const Center(child: Text("No balances"));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-
-      itemCount: balances.length,
-
-      itemBuilder: (context, index) {
-        final balance = balances[index];
-
-        double amount = double.tryParse(balance["amount"].toString()) ?? 0;
-
-        return ListTile(
-          title: Text("${balance["from"]} owes ${balance["to"]}"),
-
-          trailing: Text(
-            "₹ $amount",
-
-            style: TextStyle(
-              color: amount > 0 ? Colors.green : Colors.red,
-
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        );
-      },
     );
   }
 }

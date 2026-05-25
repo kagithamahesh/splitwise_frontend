@@ -1,25 +1,51 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:sample/config/api.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+  final int groupId;
+  final List members;
+
+  const AddExpenseScreen({
+    super.key,
+    required this.groupId,
+    required this.members,
+  });
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
 }
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
-  final titleController = TextEditingController();
-  final amountController = TextEditingController();
-  final noteController = TextEditingController();
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController notesController = TextEditingController();
 
-  String paidBy = "Jack";
-  String splitType = "Equal";
+  String splitType = "equal";
+
+  int? paidBy;
 
   DateTime selectedDate = DateTime.now();
 
-  List<String> members = ["Jack", "Rahul", "Priya", "Amit"];
-  List<String> selectedMembers = ["Jack", "Rahul"];
+  List<int> selectedMembers = [];
 
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    selectedMembers =
+        widget.members.map<int>((e) => e["id"] as int).toList();
+  }
+
+  // =========================
+  // SELECT DATE
+  // =========================
   Future<void> pickDate() async {
     DateTime? picked = await showDatePicker(
       context: context,
@@ -33,6 +59,81 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         selectedDate = picked;
       });
     }
+  }
+
+  // =========================
+  // SAVE EXPENSE API
+  // =========================
+  Future<void> saveExpense() async {
+    if (titleController.text.isEmpty ||
+        amountController.text.isEmpty ||
+        paidBy == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill all required fields"),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      String? token = prefs.getString("token");
+
+      final response = await http.post(
+        Uri.parse("${ApiConfig.baseUrl}/expenses"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "group_id": widget.groupId,
+          "description": titleController.text,
+          "amount": double.parse(amountController.text),
+          "paid_by": paidBy,
+          "split_type": splitType,
+          "members": selectedMembers,
+          "notes": notesController.text,
+          "date": selectedDate.toIso8601String(),
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Expense Added Successfully"),
+          ),
+        );
+
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data["error"] ?? "Failed"),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Something went wrong"),
+        ),
+      );
+    }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
@@ -56,66 +157,101 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
+            // =========================
+            // TITLE
+            // =========================
             const Text(
               "Expense Title",
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
             TextField(
               controller: titleController,
-              decoration: inputDecoration("Dinner, Rent, Taxi..."),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              "Amount",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-
-            const SizedBox(height: 8),
-
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: inputDecoration("₹ Enter amount"),
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              "Paid By",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-
-            const SizedBox(height: 8),
-
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              decoration: boxStyle(),
-              child: DropdownButton(
-                value: paidBy,
-                isExpanded: true,
-                underline: const SizedBox(),
-                items: members.map((name) {
-                  return DropdownMenuItem(
-                    value: name,
-                    child: Text(name),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    paidBy = value!;
-                  });
-                },
+              decoration: InputDecoration(
+                hintText: "Dinner, Rent, Taxi...",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
 
             const SizedBox(height: 20),
 
+            // =========================
+            // AMOUNT
+            // =========================
+            const Text(
+              "Amount",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: "₹ 0",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // =========================
+            // PAID BY
+            // =========================
+            const Text(
+              "Paid By",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+
+            const SizedBox(height: 10),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: paidBy,
+                  isExpanded: true,
+                  hint: const Text("Select Member"),
+
+                  items: widget.members.map((member) {
+                    return DropdownMenuItem<int>(
+                      value: member["id"],
+                      child: Text(member["name"]),
+                    );
+                  }).toList(),
+
+                  onChanged: (value) {
+                    setState(() {
+                      paidBy = value;
+                    });
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // =========================
+            // SPLIT TYPE
+            // =========================
             const Text(
               "Split Type",
               style: TextStyle(fontWeight: FontWeight.w600),
@@ -125,103 +261,241 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
             Row(
               children: [
-                splitButton("Equal"),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        splitType = "equal";
+                      });
+                    },
+
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: splitType == "equal"
+                            ? const Color(0xff5B4BFF)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+
+                      child: Center(
+                        child: Text(
+                          "Equal",
+                          style: TextStyle(
+                            color: splitType == "equal"
+                                ? Colors.white
+                                : Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(width: 10),
-                splitButton("Exact"),
+
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        splitType = "exact";
+                      });
+                    },
+
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: splitType == "exact"
+                            ? const Color(0xff5B4BFF)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+
+                      child: Center(
+                        child: Text(
+                          "Exact",
+                          style: TextStyle(
+                            color: splitType == "exact"
+                                ? Colors.white
+                                : Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
 
+            // =========================
+            // MEMBERS
+            // =========================
             const Text(
               "Split With",
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 15),
 
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: members.map((member) {
-                bool selected = selectedMembers.contains(member);
+            ...widget.members.map((member) {
+              bool selected =
+              selectedMembers.contains(member["id"]);
 
-                return FilterChip(
-                  selected: selected,
-                  label: Text(member),
-                  onSelected: (value) {
-                    setState(() {
-                      if (selected) {
-                        selectedMembers.remove(member);
-                      } else {
-                        selectedMembers.add(member);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor:
+                      const Color(0xffEEEAFE),
+
+                      child: Text(
+                        member["name"][0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xff5B4BFF),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 14),
+
+                    Expanded(
+                      child: Text(
+                        member["name"],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    Checkbox(
+                      value: selected,
+
+                      activeColor: const Color(0xff5B4BFF),
+
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            selectedMembers.add(member["id"]);
+                          } else {
+                            selectedMembers.remove(member["id"]);
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
 
             const SizedBox(height: 20),
 
+            // =========================
+            // DATE
+            // =========================
             const Text(
               "Date",
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
             GestureDetector(
               onTap: pickDate,
+
               child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: boxStyle(),
-                child: Text(
-                  "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
+
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        DateFormat("dd/MM/yyyy")
+                            .format(selectedDate),
+                      ),
+                    ),
+
+                    const Icon(Icons.calendar_month),
+                  ],
                 ),
               ),
             ),
 
             const SizedBox(height: 20),
 
+            // =========================
+            // NOTES
+            // =========================
             const Text(
               "Notes",
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
             TextField(
-              controller: noteController,
+              controller: notesController,
               maxLines: 3,
-              decoration: inputDecoration("Optional notes"),
+
+              decoration: InputDecoration(
+                hintText: "Add notes here...",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
 
-            const SizedBox(height: 35),
+            const SizedBox(height: 30),
 
+            // =========================
+            // SAVE BUTTON
+            // =========================
             SizedBox(
               width: double.infinity,
               height: 55,
+
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Expense Saved Successfully"),
-                    ),
-                  );
-                },
+                onPressed: isLoading ? null : saveExpense,
+
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff5B4BFF),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
                   ),
                 ),
-                child: const Text(
+
+                child: isLoading
+                    ? const CircularProgressIndicator(
+                  color: Colors.white,
+                )
+                    : const Text(
                   "Save Expense",
                   style: TextStyle(
-                    fontSize: 18,
                     color: Colors.white,
+                    fontSize: 16,
                   ),
                 ),
               ),
@@ -231,57 +505,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget splitButton(String type) {
-    bool active = splitType == type;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            splitType = type;
-          });
-        },
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color: active
-                ? const Color(0xff5B4BFF)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Center(
-            child: Text(
-              type,
-              style: TextStyle(
-                color: active ? Colors.white : Colors.black,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  InputDecoration inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide.none,
-      ),
-    );
-  }
-
-  BoxDecoration boxStyle() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
     );
   }
 }
