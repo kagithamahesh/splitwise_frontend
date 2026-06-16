@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -11,6 +11,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool darkMode = false;
   bool notifications = true;
   String currency = "INR (₹)";
+  String name = "";
+  String email = "";
+  bool isLoading = true;
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +50,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 15),
 
-            const Text(
-              "Jack",
+             Text(
+             name,
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
@@ -57,8 +60,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 6),
 
-            const Text(
-              "jack@example.com",
+             Text(
+             email,
               style: TextStyle(color: Colors.grey),
             ),
 
@@ -112,7 +115,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: double.infinity,
               height: 55,
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+
+                  await prefs.clear();
+
+                  if (!mounted) return;
+
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                        (route) => false,
+                  );
+                },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.red),
                   shape: RoundedRectangleBorder(
@@ -234,5 +249,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+  @override
+  void initState() {
+    super.initState();
+    loadProfile();
+  }
+  Future<void> loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      name = prefs.getString("name") ?? "";
+      email = prefs.getString("email") ?? "";
+      isLoading = false;
+    });
   }
 }

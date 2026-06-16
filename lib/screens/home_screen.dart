@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sample/config/api.dart';
+import 'package:sample/screens/chat_screen.dart';
 import 'package:sample/screens/group_details_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -71,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final pages = [
       buildHomePage(),
       const ActivityScreen(),
+      const ChatScreen(),
       const FriendsScreen(),
       const ProfileScreen(),
     ];
@@ -111,6 +113,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_rounded),
             label: "Activity",
+          ),
+          BottomNavigationBarItem(           // ← new AI tab
+            icon: Icon(Icons.smart_toy_outlined),
+            label: 'AI Chat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.group_rounded),
@@ -176,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "₹ ${homeData["totalBalance"] ?? 0}",
+                      formatAmount(homeData["totalBalance"]),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 34,
@@ -194,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: balanceCard(
                       title: "You Owe",
-                      amount: "₹ ${homeData["youOwe"] ?? 0}",
+                      amount: formatAmount(homeData["youOwe"]),
                       color: Colors.red,
                     ),
                   ),
@@ -202,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: balanceCard(
                       title: "You Get",
-                      amount: "₹ ${homeData["youGet"] ?? 0}",
+                      amount: formatAmount(homeData["youGet"]),
                       color: Colors.green,
                     ),
                   ),
@@ -282,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // GROUP LIST
               if (groups.isNotEmpty)
                 ...groups.map<Widget>((group) {
-                  int balance = group["balance"] ?? 0;
+                  double balance =  (group["balance"] ?? 0).toDouble();
                   print(group);
                   return GestureDetector(
                     onTap: () async {
@@ -305,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.group,
                       title: group["name"] ?? "",
                       subtitle: "${group["members"] ?? 0} members",
-                      amount: "₹ $balance",
+                      amount: formatAmount(balance),
                       color: balance >= 0 ? Colors.green : Colors.red,
                     ),
                   );
@@ -340,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     friend["type"] == "owes_you"
                         ? "${friend["name"]} owes you"
                         : "You owe ${friend["name"]}",
-                    "₹ ${friend["amount"]}",
+                    formatAmount(friend["amount"]),
                     friend["type"] == "owes_you" ? Colors.green : Colors.red,
                   );
                 }).toList(),
@@ -438,5 +444,13 @@ class _HomeScreenState extends State<HomeScreen> {
         style: TextStyle(color: color, fontWeight: FontWeight.bold),
       ),
     );
+  }
+  String formatAmount(dynamic value) {
+    if (value == null) return '₹ 0';
+    final amount = (value as num).toDouble();
+    if (amount == amount.truncateToDouble()) {
+      return '₹ ${amount.toStringAsFixed(0)}';
+    }
+    return '₹ ${amount.toStringAsFixed(2)}';
   }
 }

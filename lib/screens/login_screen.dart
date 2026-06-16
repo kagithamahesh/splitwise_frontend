@@ -52,6 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
           final prefs = await SharedPreferences.getInstance();
           print("hellow100");
           await prefs.setString("token", token);
+          // await prefs.setString("name", data["name"]);
+          // await prefs.setString("email", data["email"]);
           debugPrint(data.toString());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"] ?? "Login Success")),

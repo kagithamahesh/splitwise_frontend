@@ -77,7 +77,13 @@ class _GroupDetailsScreenState
       print(e);
     }
   }
-
+  String fmt(dynamic v) {
+    if (v == null) return '₹ 0';
+    final n = (v as num).toDouble();
+    return n == n.truncateToDouble()
+        ? '₹ ${n.toStringAsFixed(0)}'
+        : '₹ ${n.toStringAsFixed(2)}';
+  }
   @override
   Widget build(BuildContext context) {
 
@@ -277,7 +283,7 @@ class _GroupDetailsScreenState
                     title: "Total\nExpense",
 
                     amount:
-                    "₹ ${groupData?['totalExpense']}",
+                    fmt(groupData?['totalExpense']),
 
                     amountColor:
                     Colors.deepPurple,
@@ -291,7 +297,7 @@ class _GroupDetailsScreenState
                     title: "You\nOwe",
 
                     amount:
-                    "₹ ${groupData?['youOwe']}",
+                    fmt(groupData?['youOwe']),
 
                     amountColor:
                     Colors.red,
@@ -305,7 +311,7 @@ class _GroupDetailsScreenState
                     title: "You\nGet",
 
                     amount:
-                    "₹ ${groupData?['youGet']}",
+                    fmt(groupData?['youGet']),
 
                     amountColor:
                     Colors.green,
