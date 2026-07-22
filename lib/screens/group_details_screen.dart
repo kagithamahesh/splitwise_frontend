@@ -7,6 +7,8 @@ import 'package:sample/screens/add_expense_screen.dart';
 import 'package:sample/screens/add_member_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'expense_details_screen.dart';
+
 class GroupDetailsScreen extends StatefulWidget {
 
   final int groupId;
@@ -122,13 +124,28 @@ class _GroupDetailsScreenState
                   ),
                 ),
 
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AddExpenseScreen(groupId: widget.groupId, members: groupData?['members'],))
-                  );
-                },
+                // onPressed: () {
+                //   Navigator.push(
+                //       context,
+                //       MaterialPageRoute(builder: (_) => AddExpenseScreen(groupId: widget.groupId, members: groupData?['members'],))
+                //   );
+                // },
+                onPressed: () async {
 
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddExpenseScreen(
+                        groupId: widget.groupId,
+                        members: groupData?['members'],
+                      ),
+                    ),
+                  );
+
+                  if (result == true) {
+                    fetchGroupDetails();
+                  }
+                },
                 icon:
                 const Icon(Icons.receipt_long),
 
@@ -165,7 +182,7 @@ class _GroupDetailsScreenState
 
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => AddMemberScreen(groupId: widget.groupId))
+                    MaterialPageRoute(builder: (_) => AddMemberScreen(groupId: widget.groupId, members: groupData!["members"]))
                   );
                 },
 
@@ -387,7 +404,24 @@ class _GroupDetailsScreenState
                 final expense =
                 groupData!['expenses'][index];
 
-                return ExpenseTile(
+                return  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async {
+
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ExpenseDetailsScreen(
+                            expenseId: expense["id"],  groupId: widget.groupId,
+                          ),
+                        ),
+                      );
+
+                      if (result == true) {
+                        fetchGroupDetails();
+                      }
+                    },
+                    child: ExpenseTile(
                   title:
                   expense['title'] ?? "",
 
@@ -399,6 +433,7 @@ class _GroupDetailsScreenState
 
                   date:
                   expense['date'] ?? "",
+                    ),
                 );
               },
             ),
@@ -530,7 +565,13 @@ class ExpenseTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    return ListTile(
+    return Card(
+        margin: const EdgeInsets.only(bottom: 10),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ListTile(
 
       contentPadding: EdgeInsets.zero,
 
@@ -585,6 +626,6 @@ class ExpenseTile extends StatelessWidget {
           )
         ],
       ),
-    );
+    ));
   }
 }

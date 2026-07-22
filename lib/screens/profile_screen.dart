@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'login_screen.dart';
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -120,11 +122,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   await prefs.clear();
 
+                  print("Token: ${prefs.getString("token")}");
+
                   if (!mounted) return;
 
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => const LoginScreen(),
+                    ),
                         (route) => false,
                   );
                 },
