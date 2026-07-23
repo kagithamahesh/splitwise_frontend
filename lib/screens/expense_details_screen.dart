@@ -6,6 +6,7 @@ import 'package:sample/screens/settle_up_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api.dart';
+import 'edit_expense_screen.dart';
 
 class ExpenseDetailsScreen extends StatefulWidget  {
   final int groupId;
@@ -73,7 +74,7 @@ class ExpenseDetailsScreen extends StatefulWidget  {
 
 class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
   Map<String, dynamic>? expense;
-
+  bool isUpdated = false;
   bool isLoading = true;
 
   @override
@@ -101,7 +102,14 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       );
     }
 
-    return Scaffold(
+    return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+
+          Navigator.pop(context, isUpdated);
+        },
+        child: Scaffold(
       backgroundColor: const Color(0xffF8F9FF),
 
       appBar: AppBar(
@@ -109,8 +117,27 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {},
-          ),
+            onPressed: () async {
+
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditExpenseScreen(
+                    groupId: widget.groupId,
+                    expenseId: widget.expenseId,
+                    expense: expense!,
+                    members:expense?["members"]
+                  ),
+                ),
+              );
+
+              if (result == true) {
+                isUpdated = true;
+                fetchExpense();
+              }
+              Navigator.pop(context, isUpdated);
+            },
+          )
         ],
       ),
 
@@ -231,7 +258,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
           ],
         ),
       ),
-    );
+    ),);
   }
   Future<void> fetchExpense() async {
 

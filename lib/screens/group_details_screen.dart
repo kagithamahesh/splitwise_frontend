@@ -25,7 +25,7 @@ class GroupDetailsScreen extends StatefulWidget {
 
 class _GroupDetailsScreenState
     extends State<GroupDetailsScreen> {
-
+  bool isUpdated = false;
   Map<String, dynamic>? groupData;
 
   bool isLoading = true;
@@ -143,6 +143,7 @@ class _GroupDetailsScreenState
                   );
 
                   if (result == true) {
+                    isUpdated = true;
                     fetchGroupDetails();
                   }
                 },
@@ -210,7 +211,7 @@ class _GroupDetailsScreenState
           ),
 
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context, isUpdated);
           },
         ),
 
@@ -418,6 +419,7 @@ class _GroupDetailsScreenState
                       );
 
                       if (result == true) {
+                        print("hello");
                         fetchGroupDetails();
                       }
                     },

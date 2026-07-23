@@ -303,7 +303,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
 
                       if (result == true) {
-                        fetchHomeData();
+                        print("Refreshing Home");
+                        await fetchHomeData();
                       }
                     },
 
