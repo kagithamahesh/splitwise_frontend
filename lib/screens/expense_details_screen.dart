@@ -137,7 +137,18 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
               }
               Navigator.pop(context, isUpdated);
             },
-          )
+          ),
+          // Delete
+          IconButton(
+            icon: const Icon(
+              Icons.delete,
+              color: Colors.red,
+            ),
+            onPressed: () {
+              _showDeleteDialog();
+            },
+          ),
+
         ],
       ),
 
@@ -260,6 +271,46 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       ),
     ),);
   }
+  Future<void> deleteExpense() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString("token");
+
+      final response = await http.delete(
+        Uri.parse(
+          "${ApiConfig.baseUrl}/groups/${widget.groupId}/expenses/${widget.expenseId}",
+        ),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Expense deleted successfully"),
+          ),
+        );
+
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Delete failed: ${response.body}"),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    }
+  }
   Future<void> fetchExpense() async {
 
     try {
@@ -305,7 +356,39 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
       debugPrint(e.toString());
     }
   }
+  Future<void> _showDeleteDialog() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Delete Expense"),
+          content: const Text(
+            "Are you sure you want to delete this expense?\n\nThis action cannot be undone.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
 
+    if (confirm == true) {
+      deleteExpense();
+    }
+  }
   Widget infoTile(IconData icon, String title) {
     return Container(
       padding: const EdgeInsets.all(16),
