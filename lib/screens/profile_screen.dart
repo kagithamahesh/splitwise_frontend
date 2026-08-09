@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sample/main.dart';
 
 import 'login_screen.dart';
 class ProfileScreen extends StatefulWidget {
@@ -10,7 +11,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool darkMode = false;
+  bool darkMode = themeNotifier.value == ThemeMode.dark;
   bool notifications = true;
   String currency = "INR (₹)";
   String name = "";
@@ -81,10 +82,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.dark_mode_outlined,
               title: "Dark Mode",
               value: darkMode,
-              onChanged: (val) {
+              onChanged: (val) async {
                 setState(() {
                   darkMode = val;
                 });
+                themeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('darkMode', val);
               },
             ),
 
@@ -266,6 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       name = prefs.getString("name") ?? "";
       email = prefs.getString("email") ?? "";
+      darkMode = prefs.getBool('darkMode') ?? false;
       isLoading = false;
     });
   }

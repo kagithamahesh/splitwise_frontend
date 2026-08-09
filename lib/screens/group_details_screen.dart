@@ -41,6 +41,7 @@ class _GroupDetailsScreenState
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString("token");
+      print(widget);
       final response = await http.get(
         Uri.parse(
           "${ApiConfig.baseUrl}/groups/${widget.groupId}",
