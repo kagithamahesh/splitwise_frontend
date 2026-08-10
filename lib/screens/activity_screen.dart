@@ -7,9 +7,12 @@ class ActivityScreen extends StatefulWidget {
   State<ActivityScreen> createState() => _ActivityScreenState();
 }
 
-class _ActivityScreenState extends State<ActivityScreen> {
+class _ActivityScreenState extends State<ActivityScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   int selectedTab = 0; // 0 = All, 1 = You Owe, 2 = You Get
-  int bottomIndex = 1;
 
   final List<Map<String, dynamic>> todayData = [
     {
@@ -64,44 +67,37 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   List<Map<String, dynamic>> filterList(List<Map<String, dynamic>> data) {
     if (selectedTab == 0) return data;
-    if (selectedTab == 1) {
-      return data.where((e) => e["type"] == "owe").toList();
-    }
+    if (selectedTab == 1) return data.where((e) => e["type"] == "owe").toList();
     return data.where((e) => e["type"] == "get").toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // required by AutomaticKeepAliveClientMixin
     final today = filterList(todayData);
     final month = filterList(monthData);
+    final cardColor = Theme.of(context).cardColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF8F9FF),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xff5B4BFF),
         onPressed: () {},
         child: const Icon(Icons.add, color: Colors.white),
       ),
 
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(18),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
                   Text(
                     "Activity",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   Icon(Icons.filter_list),
                 ],
@@ -109,12 +105,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
               const SizedBox(height: 20),
 
-              /// Tabs
               Row(
                 children: [
-                  buildTab("All", 0),
-                  buildTab("You Owe", 1),
-                  buildTab("You Get Back", 2),
+                  buildTab("All", 0, isDark),
+                  buildTab("You Owe", 1, isDark),
+                  buildTab("You Get Back", 2, isDark),
                 ],
               ),
 
@@ -126,27 +121,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     if (today.isNotEmpty) ...[
                       const Text(
                         "This Week",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                       const SizedBox(height: 12),
-                      ...today.map((e) => activityTile(e)),
+                      ...today.map((e) => activityTile(e, cardColor)),
                       const SizedBox(height: 20),
                     ],
-
                     if (month.isNotEmpty) ...[
                       const Text(
                         "This Month",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                       const SizedBox(height: 12),
-                      ...month.map((e) => activityTile(e)),
-                    ]
+                      ...month.map((e) => activityTile(e, cardColor)),
+                    ],
                   ],
                 ),
               ),
@@ -157,23 +145,18 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  Widget buildTab(String title, int index) {
-    bool selected = selectedTab == index;
-
+  Widget buildTab(String title, int index, bool isDark) {
+    final bool selected = selectedTab == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedTab = index;
-          });
-        },
+        onTap: () => setState(() => selectedTab = index),
         child: Container(
           margin: const EdgeInsets.only(right: 8),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: selected
                 ? const Color(0xff5B4BFF)
-                : Colors.white,
+                : (isDark ? const Color(0xff2A2A2A) : Colors.white),
             borderRadius: BorderRadius.circular(30),
           ),
           child: Center(
@@ -182,7 +165,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               style: TextStyle(
                 color: selected
                     ? Colors.white
-                    : Colors.black87,
+                    : (isDark ? Colors.white70 : Colors.black87),
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -193,69 +176,52 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-  Widget activityTile(Map<String, dynamic> item) {
+  Widget activityTile(Map<String, dynamic> item, Color cardColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: item["color"].withOpacity(.12),
-            child: Icon(
-              item["icon"],
-              color: item["color"],
-            ),
+            backgroundColor: (item["color"] as Color).withOpacity(.12),
+            child: Icon(item["icon"] as IconData, color: item["color"] as Color),
           ),
 
           const SizedBox(width: 14),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item["title"],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                  item["title"] as String,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item["subtitle"],
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
-                  ),
+                  item["subtitle"] as String,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ],
             ),
           ),
 
           Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                item["amount"],
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+                item["amount"] as String,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 4),
               Text(
-                item["date"],
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
+                item["date"] as String,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
           ),

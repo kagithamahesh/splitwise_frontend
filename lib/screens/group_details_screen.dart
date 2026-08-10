@@ -89,12 +89,9 @@ class _GroupDetailsScreenState
   }
   @override
   Widget build(BuildContext context) {
-
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -110,13 +107,9 @@ class _GroupDetailsScreenState
               child: OutlinedButton.icon(
 
                 style: OutlinedButton.styleFrom(
-                  padding:
-                  const EdgeInsets.symmetric(
-                    vertical: 16,
-                  ),
-
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   side: const BorderSide(
-                    color: Colors.deepPurple,
+                    color: Color(0xff5B4BFF),
                   ),
 
                   shape: RoundedRectangleBorder(
@@ -163,16 +156,11 @@ class _GroupDetailsScreenState
 
                 style: ElevatedButton.styleFrom(
 
-                  backgroundColor:
-                  Colors.deepPurple,
+                  backgroundColor: const Color(0xff5B4BFF),
 
-                  foregroundColor:
-                  Colors.white,
+                  foregroundColor: Colors.white,
 
-                  padding:
-                  const EdgeInsets.symmetric(
-                    vertical: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
 
                   shape: RoundedRectangleBorder(
                     borderRadius:
@@ -200,30 +188,15 @@ class _GroupDetailsScreenState
       ),
 
       appBar: AppBar(
-
-        backgroundColor: Colors.white,
-
         elevation: 0,
-
-        leading:  IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.black,
-          ),
-
-          onPressed: () {
-            Navigator.pop(context, isUpdated);
-          },
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context, isUpdated),
         ),
-
         title: Text(
           groupData?['name'] ?? "",
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-
         centerTitle: true,
       ),
 
@@ -249,14 +222,11 @@ class _GroupDetailsScreenState
 
                 CircleAvatar(
                   radius: 40,
-
-                  backgroundColor:
-                  Colors.blue.shade100,
-
+                  backgroundColor: const Color(0xffEEEAFE),
                   child: const Icon(
                     Icons.group,
                     size: 40,
-                    color: Colors.deepPurple,
+                    color: Color(0xff5B4BFF),
                   ),
                 ),
 
@@ -467,17 +437,11 @@ class SummaryCard extends StatelessWidget {
 
     return Container(
 
-      padding:
-      const EdgeInsets.symmetric(
-        vertical: 18,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 18),
 
       decoration: BoxDecoration(
-
-        color: Colors.grey.shade100,
-
-        borderRadius:
-        BorderRadius.circular(18),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
       ),
 
       child: Column(
@@ -528,13 +492,8 @@ class MemberTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
 
       leading: CircleAvatar(
-        backgroundColor:
-        Colors.orange.shade100,
-
-        child: const Icon(
-          Icons.person,
-          color: Colors.black,
-        ),
+        backgroundColor: const Color(0xffEEEAFE),
+        child: const Icon(Icons.person, color: Color(0xff5B4BFF)),
       ),
 
       title: Text(
@@ -579,13 +538,8 @@ class ExpenseTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
 
       leading: CircleAvatar(
-        backgroundColor:
-        Colors.green.shade100,
-
-        child: const Icon(
-          Icons.receipt,
-          color: Colors.black,
-        ),
+        backgroundColor: const Color(0xffEEEAFE),
+        child: const Icon(Icons.receipt, color: Color(0xff5B4BFF)),
       ),
 
       title: Text(

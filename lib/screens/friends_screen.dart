@@ -7,74 +7,49 @@ class FriendsScreen extends StatefulWidget {
   State<FriendsScreen> createState() => _FriendsScreenState();
 }
 
-class _FriendsScreenState extends State<FriendsScreen> {
-  final TextEditingController searchController =
-  TextEditingController();
+class _FriendsScreenState extends State<FriendsScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  final TextEditingController searchController = TextEditingController();
 
   final List<Map<String, dynamic>> friends = [
-    {
-      "name": "Rahul Sharma",
-      "email": "rahul@gmail.com",
-      "amount": 500,
-      "type": "owes_you"
-    },
-    {
-      "name": "Priya Reddy",
-      "email": "priya@gmail.com",
-      "amount": 320,
-      "type": "you_owe"
-    },
-    {
-      "name": "Amit Kumar",
-      "email": "amit@gmail.com",
-      "amount": 0,
-      "type": "settled"
-    },
-    {
-      "name": "Sneha Patel",
-      "email": "sneha@gmail.com",
-      "amount": 1250,
-      "type": "owes_you"
-    },
+    {"name": "Rahul Sharma", "email": "rahul@gmail.com", "amount": 500, "type": "owes_you"},
+    {"name": "Priya Reddy", "email": "priya@gmail.com", "amount": 320, "type": "you_owe"},
+    {"name": "Amit Kumar", "email": "amit@gmail.com", "amount": 0, "type": "settled"},
+    {"name": "Sneha Patel", "email": "sneha@gmail.com", "amount": 1250, "type": "owes_you"},
   ];
 
   String searchText = "";
 
   @override
   Widget build(BuildContext context) {
-    final filteredFriends = friends.where((friend) {
-      return friend["name"]
-          .toLowerCase()
-          .contains(searchText.toLowerCase());
-    }).toList();
+    super.build(context); // required by AutomaticKeepAliveClientMixin
+    final filteredFriends = friends
+        .where((f) => f["name"].toLowerCase().contains(searchText.toLowerCase()))
+        .toList();
+
+    final cardColor = Theme.of(context).cardColor;
 
     return Scaffold(
-      backgroundColor: const Color(0xffF8F9FF),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(18),
-
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Header
               Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     "Friends",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                      BorderRadius.circular(14),
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: IconButton(
                       onPressed: () {},
@@ -86,48 +61,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
               const SizedBox(height: 18),
 
-              /// Search
               TextField(
                 controller: searchController,
-                onChanged: (value) {
-                  setState(() {
-                    searchText = value;
-                  });
-                },
-                decoration: InputDecoration(
+                onChanged: (value) => setState(() => searchText = value),
+                decoration: const InputDecoration(
                   hintText: "Search friends",
-                  prefixIcon:
-                  const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius:
-                    BorderRadius.circular(18),
-                    borderSide: BorderSide.none,
-                  ),
+                  prefixIcon: Icon(Icons.search),
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              /// Summary Cards
               Row(
                 children: [
-                  Expanded(
-                    child: summaryCard(
-                      "You Get",
-                      "₹1,750",
-                      Colors.green,
-                    ),
-                  ),
+                  Expanded(child: summaryCard("You Get", "₹1,750", Colors.green, cardColor)),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: summaryCard(
-                      "You Owe",
-                      "₹320",
-                      Colors.red,
-                    ),
-                  ),
+                  Expanded(child: summaryCard("You Owe", "₹320", Colors.red, cardColor)),
                 ],
               ),
 
@@ -135,10 +84,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
               const Text(
                 "All Friends",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 14),
@@ -146,12 +92,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
               Expanded(
                 child: ListView.builder(
                   itemCount: filteredFriends.length,
-                  itemBuilder: (context, index) {
-                    final friend =
-                    filteredFriends[index];
-
-                    return friendTile(friend);
-                  },
+                  itemBuilder: (context, index) =>
+                      friendTile(filteredFriends[index], cardColor),
                 ),
               ),
             ],
@@ -161,36 +103,27 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  Widget summaryCard(
-      String title, String amount, Color color) {
+  Widget summaryCard(String title, String amount, Color color, Color cardColor) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         children: [
-          Text(
-            title,
-            style:
-            const TextStyle(color: Colors.grey),
-          ),
+          Text(title, style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 8),
           Text(
             amount,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 22),
           ),
         ],
       ),
     );
   }
 
-  Widget friendTile(Map<String, dynamic> friend) {
+  Widget friendTile(Map<String, dynamic> friend, Color cardColor) {
     Color amountColor = Colors.grey;
     String text = "Settled up";
 
@@ -206,21 +139,17 @@ class _FriendsScreenState extends State<FriendsScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor:
-            const Color(0xffEEEAFE),
+            backgroundColor: const Color(0xffEEEAFE),
             child: Text(
-              friend["name"][0],
-              style: const TextStyle(
-                color: Color(0xff5B4BFF),
-                fontWeight: FontWeight.bold,
-              ),
+              friend["name"][0] as String,
+              style: const TextStyle(color: Color(0xff5B4BFF), fontWeight: FontWeight.bold),
             ),
           ),
 
@@ -228,47 +157,30 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  friend["name"],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                  friend["name"] as String,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  friend["email"],
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
-                  ),
+                  friend["email"] as String,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ],
             ),
           ),
 
           Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                text,
-                style: TextStyle(
-                  color: amountColor,
-                  fontSize: 12,
-                ),
-              ),
+              Text(text, style: TextStyle(color: amountColor, fontSize: 12)),
               const SizedBox(height: 4),
               Text(
                 "₹${friend["amount"]}",
                 style: TextStyle(
-                  color: amountColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+                    color: amountColor, fontWeight: FontWeight.bold, fontSize: 15),
               ),
             ],
           ),

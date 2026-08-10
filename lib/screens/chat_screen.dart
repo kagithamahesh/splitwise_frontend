@@ -115,13 +115,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffF8F9FF),
+    final cardColor = Theme.of(context).cardColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    return Scaffold(
       // ── AppBar ─────────────────────────────────────────────────────────
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
         automaticallyImplyLeading: false,
         title: Row(
           children: [
@@ -144,11 +143,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 const Text(
                   'FinSplit AI',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 Row(
                   children: [
@@ -199,14 +194,13 @@ class _ChatScreenState extends State<ChatScreen> {
           if (!_isLoading)
             Container(
               height: 44,
-              color: Colors.white,
+              color: cardColor,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 8),
                 itemCount: _suggestions.length,
-                separatorBuilder: (_, __) =>
-                const SizedBox(width: 8),
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) => GestureDetector(
                   onTap: () => _sendMessage(_suggestions[index]),
                   child: Container(
@@ -214,14 +208,15 @@ class _ChatScreenState extends State<ChatScreen> {
                         horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       border: Border.all(
-                          color: Colors.grey.shade300),
+                          color: isDark ? Colors.white24 : Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(20),
-                      color: const Color(0xffF8F9FF),
+                      color: isDark ? const Color(0xff2A2A2A) : const Color(0xffF8F9FF),
                     ),
                     child: Text(
                       _suggestions[index],
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : Colors.black54),
                     ),
                   ),
                 ),
@@ -231,7 +226,7 @@ class _ChatScreenState extends State<ChatScreen> {
           // ── Input bar ─────────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
-            color: Colors.white,
+            color: cardColor,
             child: Row(
               children: [
                 Expanded(
@@ -242,10 +237,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     onSubmitted: _sendMessage,
                     decoration: InputDecoration(
                       hintText: 'Ask about expenses...',
-                      hintStyle: const TextStyle(
-                          fontSize: 14, color: Colors.grey),
                       filled: true,
-                      fillColor: const Color(0xffF8F9FF),
+                      fillColor: isDark ? const Color(0xff2A2A2A) : const Color(0xffF8F9FF),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
@@ -323,6 +316,8 @@ class _ChatScreenState extends State<ChatScreen> {
   // ── Bot bubble ───────────────────────────────────────────────────────────
   Widget _buildBotBubble(
       String text, Map<String, dynamic>? data) {
+    final cardColor = Theme.of(context).cardColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -347,7 +342,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(18),
                       topRight: Radius.circular(18),
@@ -355,12 +350,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       bottomLeft: Radius.circular(4),
                     ),
                     border: Border.all(
-                        color: Colors.grey.shade200),
+                        color: isDark ? Colors.white12 : Colors.grey.shade200),
                   ),
                   child: Text(
                     text,
-                    style: const TextStyle(
-                        fontSize: 14, color: Colors.black87),
+                    style: const TextStyle(fontSize: 14),
                   ),
                 ),
                 if (data != null && data['success'] == true)
@@ -375,14 +369,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // ── Response card ────────────────────────────────────────────────────────
   Widget _buildResponseCard(Map<String, dynamic> data) {
+    final cardColor = Theme.of(context).cardColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
-        border:
-        Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,6 +615,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildTypingIndicator() {
+    final cardColor = Theme.of(context).cardColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -639,10 +636,10 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(18),
-              border:
-              Border.all(color: Colors.grey.shade200),
+              border: Border.all(
+                  color: isDark ? Colors.white12 : Colors.grey.shade200),
             ),
             child: Row(
               children: [

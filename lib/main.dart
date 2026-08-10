@@ -39,6 +39,31 @@ class MyApp extends StatelessWidget {
               backgroundColor: Colors.transparent,
               elevation: 0,
               foregroundColor: Colors.black,
+              titleTextStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Colors.white,
+              selectedItemColor: Color(0xff5B4BFF),
+              unselectedItemColor: Colors.grey,
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            switchTheme: SwitchThemeData(
+              trackColor: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? const Color(0xff5B4BFF)
+                    : Colors.grey.shade300,
+              ),
             ),
           ),
 
@@ -48,10 +73,48 @@ class MyApp extends StatelessWidget {
             colorSchemeSeed: const Color(0xff5B4BFF),
             scaffoldBackgroundColor: const Color(0xff121212),
             cardColor: const Color(0xff1E1E1E),
+            dividerColor: Colors.white12,
             appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.transparent,
+              backgroundColor: Color(0xff1A1A1A),
               elevation: 0,
               foregroundColor: Colors.white,
+              titleTextStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            textTheme: const TextTheme(
+              bodyLarge: TextStyle(color: Colors.white),
+              bodyMedium: TextStyle(color: Colors.white70),
+              bodySmall: TextStyle(color: Colors.white60),
+              titleLarge: TextStyle(color: Colors.white),
+              titleMedium: TextStyle(color: Colors.white),
+              labelLarge: TextStyle(color: Colors.white),
+            ),
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Color(0xff1A1A1A),
+              selectedItemColor: Color(0xff9B8FFF),
+              unselectedItemColor: Colors.grey,
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: const Color(0xff2A2A2A),
+              hintStyle: const TextStyle(color: Colors.white38),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            switchTheme: SwitchThemeData(
+              trackColor: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? const Color(0xff9B8FFF)
+                    : Colors.white24,
+              ),
+            ),
+            dropdownMenuTheme: const DropdownMenuThemeData(
+              textStyle: TextStyle(color: Colors.white),
             ),
           ),
 

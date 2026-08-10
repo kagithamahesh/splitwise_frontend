@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -10,13 +10,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final VoidCallback? onBack;
+  const ProfileScreen({super.key, this.onBack});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   bool darkMode = themeNotifier.value == ThemeMode.dark;
   bool notifications = true;
   String currency = "INR (₹)";
@@ -24,18 +29,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String email = "";
   bool isLoading = true;
 
-  /// Local file chosen by the picker (not yet uploaded / just uploaded).
-  File? _pickedImage;
-
-  /// Remote URL returned by the server after a successful upload.
+  Uint8List? _pickedImageBytes;
   String? _avatarUrl;
-
-  /// True while the upload HTTP request is in flight.
   bool _isUploading = false;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Lifecycle
-  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   void initState() {
@@ -54,24 +50,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Image pick + upload
-  // ─────────────────────────────────────────────────────────────────────────
-
   Future<void> _pickAndUpload(ImageSource source) async {
-    // Capture context-dependent references before any await.
     final messenger = ScaffoldMessenger.of(context);
-
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: source,
       imageQuality: 80,
       maxWidth: 800,
     );
-    if (picked == null) return; // user cancelled
+    if (picked == null) return;
 
+    final bytes = await picked.readAsBytes();
     setState(() {
-      _pickedImage = File(picked.path);
+      _pickedImageBytes = bytes;
       _isUploading = true;
     });
 
@@ -79,14 +70,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString("token") ?? "";
 
+      final filename = picked.name.isNotEmpty ? picked.name : 'image.jpg';
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse("${ApiConfig.baseUrl}/user/upload-avatar"),
+        Uri.parse("${ApiConfig.baseUrl}/users/profile-image"),
       )
         ..headers['Authorization'] = 'Bearer $token'
-        ..files.add(
-          await http.MultipartFile.fromPath('avatar', picked.path),
-        );
+        ..files.add(http.MultipartFile.fromBytes(
+          'image',
+          bytes,
+          filename: filename,
+        ));
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
@@ -94,11 +88,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        // Server may return the hosted URL; fall back to local file display.
-        final url = _parseAvatarUrl(response.body);
-        await prefs.setString("avatarUrl", url ?? "");
+        final imagePath = _parseImagePath(response.body);
+        final fullUrl = imagePath != null
+            ? "${ApiConfig.baseUrl}$imagePath"
+            : null;
+        await prefs.setString("avatarUrl", fullUrl ?? "");
         setState(() {
-          _avatarUrl = url;
+          _avatarUrl = fullUrl;
+          // Keep _pickedImageBytes so the avatar is immediately visible
+          // on Web where NetworkImage may be blocked by CORS.
           _isUploading = false;
         });
         messenger.showSnackBar(
@@ -108,26 +106,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isUploading = false);
         messenger.showSnackBar(
           SnackBar(
-            content: Text("Upload failed (${response.statusCode}). "
-                "Showing local preview."),
+            content: Text("Upload failed (${response.statusCode})."),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUploading = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text("Upload error: $e")),
-      );
+      messenger.showSnackBar(SnackBar(content: Text("Upload error: $e")));
     }
   }
 
-  /// Tries to parse the avatar URL from the server's JSON response body.
-  String? _parseAvatarUrl(String body) {
-    // Handles: {"url":"https://..."} or {"avatarUrl":"https://..."}
-    final urlMatch = RegExp(r'"(?:url|avatarUrl|avatar)"\s*:\s*"([^"]+)"')
-        .firstMatch(body);
-    return urlMatch?.group(1);
+  /// Parses the `"image"` field from the upload response.
+  /// Response shape: { "image": "/uploads/profile/1.PNG", "message": "..." }
+  String? _parseImagePath(String body) {
+    final match =
+        RegExp(r'"image"\s*:\s*"([^"]+)"').firstMatch(body);
+    return match?.group(1);
   }
 
   void _showPickerDialog() {
@@ -166,33 +161,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Build
-  // ─────────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffF8F9FF),
+    super.build(context); // required by AutomaticKeepAliveClientMixin
+    final cardColor = Theme.of(context).cardColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          "Profile",
-          style: TextStyle(color: Colors.black),
+        title: const Text("Profile"),
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: widget.onBack,
         ),
-        iconTheme: const IconThemeData(color: Colors.black),
       ),
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-
         child: Column(
           children: [
             const SizedBox(height: 10),
 
-            // ── Avatar with edit button ──────────────────────────────
+            // ── Avatar ──────────────────────────────────────────────
             GestureDetector(
               onTap: _showPickerDialog,
               child: Stack(
@@ -224,33 +215,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             Text(
               name,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 6),
 
-            Text(
-              email,
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Text(email, style: const TextStyle(color: Colors.grey)),
 
             const SizedBox(height: 30),
 
             settingsTile(
               icon: Icons.person_outline,
               title: "Personal Details",
+              cardColor: cardColor,
               onTap: () {},
             ),
 
-            currencyTile(),
+            currencyTile(cardColor: cardColor, isDark: isDark),
 
             switchTile(
               icon: Icons.dark_mode_outlined,
               title: "Dark Mode",
               value: darkMode,
+              cardColor: cardColor,
               onChanged: (val) async {
                 setState(() => darkMode = val);
                 themeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
@@ -263,20 +250,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.notifications_none,
               title: "Notifications",
               value: notifications,
-              onChanged: (val) {
-                setState(() => notifications = val);
-              },
+              cardColor: cardColor,
+              onChanged: (val) => setState(() => notifications = val),
             ),
 
             settingsTile(
               icon: Icons.help_outline,
               title: "Help & Support",
+              cardColor: cardColor,
               onTap: () {},
             ),
 
             settingsTile(
               icon: Icons.info_outline,
               title: "About Split Money",
+              cardColor: cardColor,
               onTap: () {},
             ),
 
@@ -316,42 +304,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Avatar widget — local file > remote URL > placeholder icon
-  // ─────────────────────────────────────────────────────────────────────────
-
   Widget _buildAvatar() {
-    ImageProvider? imageProvider;
-
-    if (_pickedImage != null) {
-      imageProvider = FileImage(_pickedImage!);
-    } else if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
-      imageProvider = NetworkImage(_avatarUrl!);
+    // Priority 1: locally picked bytes (always works on Web & native)
+    if (_pickedImageBytes != null) {
+      return CircleAvatar(
+        radius: 45,
+        backgroundColor: const Color(0xffEEEAFE),
+        backgroundImage: MemoryImage(_pickedImageBytes!),
+      );
     }
 
-    return CircleAvatar(
+    // Priority 2: server URL loaded via network
+    if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 45,
+        backgroundColor: const Color(0xffEEEAFE),
+        child: ClipOval(
+          child: Image.network(
+            _avatarUrl!,
+            width: 90,
+            height: 90,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.person,
+              size: 50,
+              color: Color(0xff5B4BFF),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Priority 3: placeholder
+    return const CircleAvatar(
       radius: 45,
-      backgroundColor: const Color(0xffEEEAFE),
-      backgroundImage: imageProvider,
-      child: imageProvider == null
-          ? const Icon(Icons.person, size: 50, color: Color(0xff5B4BFF))
-          : null,
+      backgroundColor: Color(0xffEEEAFE),
+      child: Icon(Icons.person, size: 50, color: Color(0xff5B4BFF)),
     );
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Tile helpers
-  // ─────────────────────────────────────────────────────────────────────────
 
   Widget settingsTile({
     required IconData icon,
     required String title,
+    required Color cardColor,
     required VoidCallback onTap,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: ListTile(
@@ -363,12 +364,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget currencyTile() {
+  Widget currencyTile({required Color cardColor, required bool isDark}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -381,6 +382,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           DropdownButton<String>(
             value: currency,
             underline: const SizedBox(),
+            dropdownColor: isDark ? const Color(0xff2A2A2A) : Colors.white,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 14,
+            ),
             items: const [
               DropdownMenuItem(value: "INR (₹)", child: Text("INR")),
               DropdownMenuItem(value: "USD (\$)", child: Text("USD")),
@@ -397,27 +403,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required IconData icon,
     required String title,
     required bool value,
+    required Color cardColor,
     required ValueChanged<bool> onChanged,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           Icon(icon, color: const Color(0xff5B4BFF)),
           const SizedBox(width: 15),
-          Expanded(
-            child: Text(title, style: const TextStyle(fontSize: 16)),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeTrackColor: const Color(0xff5B4BFF),
-          ),
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 16))),
+          Switch(value: value, onChanged: onChanged),
         ],
       ),
     );

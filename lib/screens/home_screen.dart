@@ -6,7 +6,6 @@ import 'package:sample/screens/chat_screen.dart';
 import 'package:sample/screens/group_details_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'add_expense_screen.dart';
 import 'activity_screen.dart';
 import 'friends_screen.dart';
 import 'profile_screen.dart';
@@ -74,33 +73,31 @@ class _HomeScreenState extends State<HomeScreen> {
       const ActivityScreen(),
       const ChatScreen(),
       const FriendsScreen(),
-      const ProfileScreen(),
+      ProfileScreen(onBack: () => setState(() => selectedIndex = 0)),
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xffF8F9FF),
-
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : pages[selectedIndex],
+          : IndexedStack(
+              index: selectedIndex,
+              children: pages,
+            ),
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xff5B4BFF),
         child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(builder: (_) => const AddExpenseScreen(groupId: null, members: [],)),
-          // );
-        },
+        onPressed: () {},
       ),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
-        selectedItemColor: const Color(0xff5B4BFF),
-        unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
+          // Re-fetch home data whenever the user taps back to the Home tab
+          if (index == 0 && selectedIndex != 0) {
+            fetchHomeData();
+          }
           setState(() {
             selectedIndex = index;
           });
@@ -114,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.receipt_long_rounded),
             label: "Activity",
           ),
-          BottomNavigationBarItem(           // ← new AI tab
+          BottomNavigationBarItem(
             icon: Icon(Icons.smart_toy_outlined),
             label: 'AI Chat',
           ),
@@ -134,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildHomePage() {
     final groups = homeData["groups"] ?? [];
     final friends = homeData["friends"] ?? [];
+    final cardColor = Theme.of(context).cardColor;
 
     return SafeArea(
       child: RefreshIndicator(
@@ -202,6 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       title: "You Owe",
                       amount: formatAmount(homeData["youOwe"]),
                       color: Colors.red,
+                      cardColor: cardColor,
                     ),
                   ),
                   const SizedBox(width: 15),
@@ -210,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       title: "You Get",
                       amount: formatAmount(homeData["youGet"]),
                       color: Colors.green,
+                      cardColor: cardColor,
                     ),
                   ),
                 ],
@@ -239,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(25),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Column(
@@ -288,8 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // GROUP LIST
               if (groups.isNotEmpty)
                 ...groups.map<Widget>((group) {
-                  double balance =  (group["balance"] ?? 0).toDouble();
-                  print(group);
+                  double balance = (group["balance"] ?? 0).toDouble();
                   return GestureDetector(
                     onTap: () async {
                       final result = await Navigator.push(
@@ -303,17 +302,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
 
                       if (result == true) {
-                        print("Refreshing Home");
                         await fetchHomeData();
                       }
                     },
-
                     child: groupTile(
                       icon: Icons.group,
                       title: group["name"] ?? "",
                       subtitle: "${group["members"] ?? 0} members",
                       amount: formatAmount(balance),
                       color: balance >= 0 ? Colors.green : Colors.red,
+                      cardColor: cardColor,
                     ),
                   );
                 }).toList(),
@@ -332,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
@@ -364,11 +362,12 @@ class _HomeScreenState extends State<HomeScreen> {
     required String title,
     required String amount,
     required Color color,
+    required Color cardColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
@@ -394,12 +393,13 @@ class _HomeScreenState extends State<HomeScreen> {
     required String subtitle,
     required String amount,
     required Color color,
+    required Color cardColor,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -446,6 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   String formatAmount(dynamic value) {
     if (value == null) return '₹ 0';
     final amount = (value as num).toDouble();
