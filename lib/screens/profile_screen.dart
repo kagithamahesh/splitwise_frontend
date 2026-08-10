@@ -30,7 +30,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool isLoading = true;
 
   Uint8List? _pickedImageBytes;
-  String? _avatarUrl;
   bool _isUploading = false;
 
   @override
@@ -42,12 +41,26 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      name = prefs.getString("name") ?? "";
-      email = prefs.getString("email") ?? "";
-      _avatarUrl = prefs.getString("avatarUrl");
+      name     = prefs.getString("name")  ?? "";
+      email    = prefs.getString("email") ?? "";
       darkMode = prefs.getBool('darkMode') ?? false;
       isLoading = false;
     });
+
+    // GET /users/profile-image returns raw image bytes (image/jpeg)
+    // Must send Authorization header — can't use Image.network directly.
+    try {
+      final token = prefs.getString("token") ?? "";
+      final res = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/users/profile-image"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+      if (res.statusCode == 200 && mounted) {
+        setState(() => _pickedImageBytes = res.bodyBytes);
+      }
+    } catch (e) {
+      debugPrint("Profile image fetch error: $e");
+    }
   }
 
   Future<void> _pickAndUpload(ImageSource source) async {
@@ -88,15 +101,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final imagePath = _parseImagePath(response.body);
-        final fullUrl = imagePath != null
-            ? "${ApiConfig.baseUrl}$imagePath"
-            : null;
-        await prefs.setString("avatarUrl", fullUrl ?? "");
         setState(() {
-          _avatarUrl = fullUrl;
-          // Keep _pickedImageBytes so the avatar is immediately visible
-          // on Web where NetworkImage may be blocked by CORS.
+          // _pickedImageBytes already holds the local preview — keep it visible
           _isUploading = false;
         });
         messenger.showSnackBar(
@@ -115,14 +121,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       setState(() => _isUploading = false);
       messenger.showSnackBar(SnackBar(content: Text("Upload error: $e")));
     }
-  }
-
-  /// Parses the `"image"` field from the upload response.
-  /// Response shape: { "image": "/uploads/profile/1.PNG", "message": "..." }
-  String? _parseImagePath(String body) {
-    final match =
-        RegExp(r'"image"\s*:\s*"([^"]+)"').firstMatch(body);
-    return match?.group(1);
   }
 
   void _showPickerDialog() {
@@ -305,7 +303,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildAvatar() {
-    // Priority 1: locally picked bytes (always works on Web & native)
     if (_pickedImageBytes != null) {
       return CircleAvatar(
         radius: 45,
@@ -313,29 +310,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         backgroundImage: MemoryImage(_pickedImageBytes!),
       );
     }
-
-    // Priority 2: server URL loaded via network
-    if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 45,
-        backgroundColor: const Color(0xffEEEAFE),
-        child: ClipOval(
-          child: Image.network(
-            _avatarUrl!,
-            width: 90,
-            height: 90,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const Icon(
-              Icons.person,
-              size: 50,
-              color: Color(0xff5B4BFF),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Priority 3: placeholder
     return const CircleAvatar(
       radius: 45,
       backgroundColor: Color(0xffEEEAFE),
