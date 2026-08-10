@@ -82,7 +82,7 @@ class _AddMemberScreenState
         isLoading = false;
       });
 
-      print(e);
+      debugPrint(e.toString());
     }
   }
 
@@ -147,22 +147,20 @@ class _AddMemberScreenState
       if (response.statusCode == 200 ||
           response.statusCode == 201) {
 
+        if (!mounted) return;
         setState(() {
           groupMemberIds.add(userId);
-
           filteredUsers.removeWhere(
-                (user) => user["id"] == userId,
+            (user) => user["id"] == userId,
           );
         });
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Member added successfully"),
           ),
         );
-
       } else {
-
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Failed to add member"),
@@ -170,14 +168,13 @@ class _AddMemberScreenState
         );
       }
     } catch (e) {
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Something went wrong"),
         ),
       );
-
-      print(e);
+      debugPrint(e.toString());
     }
   }
   @override

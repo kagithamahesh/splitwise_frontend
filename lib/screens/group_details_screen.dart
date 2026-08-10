@@ -12,10 +12,12 @@ import 'expense_details_screen.dart';
 class GroupDetailsScreen extends StatefulWidget {
 
   final int groupId;
+  final String groupName;
 
   const GroupDetailsScreen({
     super.key,
-    required this.groupId, required groupName,
+    required this.groupId,
+    required this.groupName,
   });
 
   @override
@@ -37,11 +39,9 @@ class _GroupDetailsScreenState
   }
 
   Future<void> fetchGroupDetails() async {
-
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString("token");
-      print(widget);
       final response = await http.get(
         Uri.parse(
           "${ApiConfig.baseUrl}/groups/${widget.groupId}",
@@ -63,21 +63,15 @@ class _GroupDetailsScreenState
         });
 
       } else {
-
         setState(() {
           isLoading = false;
         });
-
-        print("API Error");
       }
-
     } catch (e) {
-
       setState(() {
         isLoading = false;
       });
-
-      print(e);
+      debugPrint(e.toString());
     }
   }
   String fmt(dynamic v) {
@@ -390,7 +384,6 @@ class _GroupDetailsScreenState
                       );
 
                       if (result == true) {
-                        print("hello");
                         fetchGroupDetails();
                       }
                     },

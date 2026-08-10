@@ -200,7 +200,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 8),
                 itemCount: _suggestions.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
                 itemBuilder: (context, index) => GestureDetector(
                   onTap: () => _sendMessage(_suggestions[index]),
                   child: Container(

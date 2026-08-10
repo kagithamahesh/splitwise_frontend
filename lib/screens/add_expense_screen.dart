@@ -107,14 +107,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       if (response.statusCode == 200 ||
           response.statusCode == 201) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Expense Added Successfully"),
           ),
         );
-
         Navigator.pop(context, true);
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data["error"] ?? "Failed"),
@@ -123,7 +124,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       }
     } catch (e) {
       debugPrint(e.toString());
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Something went wrong"),
@@ -342,24 +343,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             const SizedBox(height: 15),
 
             ...widget.members.map((member) {
-              bool selected =
-              selectedMembers.contains(member["id"]);
-
+              final bool selected = selectedMembers.contains(member["id"]);
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
-
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
                 ),
-
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor:
-                      const Color(0xffEEEAFE),
-
+                      backgroundColor: const Color(0xffEEEAFE),
                       child: Text(
                         member["name"][0].toUpperCase(),
                         style: const TextStyle(
@@ -368,9 +363,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 14),
-
                     Expanded(
                       child: Text(
                         member["name"],
@@ -379,12 +372,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         ),
                       ),
                     ),
-
                     Checkbox(
                       value: selected,
-
                       activeColor: const Color(0xff5B4BFF),
-
                       onChanged: (value) {
                         setState(() {
                           if (value == true) {
@@ -398,7 +388,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
 
             const SizedBox(height: 20),
 

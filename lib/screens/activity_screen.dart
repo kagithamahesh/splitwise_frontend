@@ -188,7 +188,7 @@ class _ActivityScreenState extends State<ActivityScreen>
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: (item["color"] as Color).withOpacity(.12),
+            backgroundColor: (item["color"] as Color).withValues(alpha: .12),
             child: Icon(item["icon"] as IconData, color: item["color"] as Color),
           ),
 

@@ -44,12 +44,12 @@ class _SignupScreenState extends State<SignupScreen> {
       });
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data["message"] ?? "Signup Success"),
           ),
         );
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -57,6 +57,7 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data["error"] ?? "Signup Failed"),
@@ -67,7 +68,7 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() {
         isLoading = false;
       });
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error: $e"),
