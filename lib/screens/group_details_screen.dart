@@ -591,6 +591,6 @@ class ExpenseTile extends StatelessWidget {
           ],
         ),
       ),
-    ));
+    );
   }
 }
