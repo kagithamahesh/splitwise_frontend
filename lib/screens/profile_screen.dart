@@ -1,6 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:sample/config/api.dart';
+import 'package:sample/main.dart';
 import 'package:sample/screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
     loadProfile();
+    _loadCurrency();
   }
 
   Future<void> loadProfile() async {
@@ -152,12 +157,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCurrency();
   }
 
   Future<void> _loadCurrency() async {
