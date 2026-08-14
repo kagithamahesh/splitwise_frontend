@@ -139,21 +139,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
-      backgroundColor: const Color(0xffF8F9FF),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      resizeToAvoidBottomInset: true,
 
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          "Add Expense",
-          style: TextStyle(color: Colors.black),
-        ),
-        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text("Add Expense"),
       ),
 
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomPadding),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
 
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,8 +170,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               controller: titleController,
               decoration: InputDecoration(
                 hintText: "Dinner, Rent, Taxi...",
-                filled: true,
-                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -198,8 +194,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 hintText: "₹ 0",
-                filled: true,
-                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -222,7 +216,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
               ),
 
@@ -275,7 +269,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       decoration: BoxDecoration(
                         color: splitType == "equal"
                             ? const Color(0xff5B4BFF)
-                            : Colors.white,
+                            : Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(14),
                       ),
 
@@ -285,7 +279,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           style: TextStyle(
                             color: splitType == "equal"
                                 ? Colors.white
-                                : Colors.black,
+                                : Theme.of(context).textTheme.bodyMedium?.color,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -309,7 +303,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       decoration: BoxDecoration(
                         color: splitType == "exact"
                             ? const Color(0xff5B4BFF)
-                            : Colors.white,
+                            : Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(14),
                       ),
 
@@ -319,7 +313,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           style: TextStyle(
                             color: splitType == "exact"
                                 ? Colors.white
-                                : Colors.black,
+                                : Theme.of(context).textTheme.bodyMedium?.color,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -348,7 +342,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Row(
@@ -412,7 +406,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
 
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
 
@@ -449,8 +443,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               decoration: InputDecoration(
                 hintText: "Add notes here...",
-                filled: true,
-                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,

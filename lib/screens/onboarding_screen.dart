@@ -27,6 +27,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     },
   ];
 
+  void _goToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LoginScreen(),
+      ),
+    );
+  }
+
   void nextPage() {
     if (currentPage < pages.length - 1) {
       _controller.nextPage(
@@ -34,17 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      // Navigate to Login/Home later
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   const SnackBar(content: Text("Go to Login Screen")),
-      // );
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
-      );
+      _goToLogin();
     }
   }
 
@@ -60,7 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Align(
                 alignment: Alignment.topRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: _goToLogin,
                   child: const Text("Skip"),
                 ),
               ),

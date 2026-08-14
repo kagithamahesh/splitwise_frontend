@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:sample/config/api.dart';
 import 'package:sample/screens/chat_screen.dart';
@@ -76,7 +77,35 @@ class _HomeScreenState extends State<HomeScreen> {
       ProfileScreen(onBack: () => setState(() => selectedIndex = 0)),
     ];
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Exit App"),
+            content: const Text("Are you sure you want to exit the app?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text(
+                  "Exit",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+        if (shouldExit == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : IndexedStack(
@@ -125,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget buildHomePage() {
@@ -201,6 +230,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       amount: formatAmount(homeData["youOwe"]),
                       color: Colors.red,
                       cardColor: cardColor,
+                      onTap: () => _showBalanceSheet(
+                        title: "You Owe",
+                        accentColor: Colors.red,
+                        entries: (friends as List)
+                            .where((f) => f["type"] == "you_owe")
+                            .toList(),
+                        emptyMessage: "You don't owe anyone right now 🎉",
+                      ),
                     ),
                   ),
                   const SizedBox(width: 15),
@@ -210,6 +247,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       amount: formatAmount(homeData["youGet"]),
                       color: Colors.green,
                       cardColor: cardColor,
+                      onTap: () => _showBalanceSheet(
+                        title: "You Get",
+                        accentColor: Colors.green,
+                        entries: (friends as List)
+                            .where((f) => f["type"] == "owes_you")
+                            .toList(),
+                        emptyMessage: "Nobody owes you anything right now.",
+                      ),
                     ),
                   ),
                 ],
@@ -358,31 +403,193 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showBalanceSheet({
+    required String title,
+    required Color accentColor,
+    required List entries,
+    required String emptyMessage,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final cardColor = Theme.of(ctx).cardColor;
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: entries.isEmpty ? 0.35 : 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          builder: (_, scrollController) => Column(
+            children: [
+              // drag handle
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              Expanded(
+                child: entries.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            emptyMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        itemCount: entries.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
+                        itemBuilder: (_, i) {
+                          final entry = entries[i];
+                          final isOwedByThem =
+                              entry["type"] == "owes_you";
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor:
+                                      const Color(0xffEEEAFE),
+                                  child: Text(
+                                    (entry["name"] as String? ?? "?")
+                                        .substring(0, 1)
+                                        .toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Color(0xff5B4BFF),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        entry["name"] ?? "",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      Text(
+                                        isOwedByThem
+                                            ? "owes you"
+                                            : "you owe",
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  formatAmount(entry["amount"]),
+                                  style: TextStyle(
+                                    color: accentColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget balanceCard({
     required String title,
     required String amount,
     required Color color,
     required Color cardColor,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        children: [
-          Text(title),
-          const SizedBox(height: 10),
-          Text(
-            amount,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-              color: color,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              amount,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
