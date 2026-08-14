@@ -24,11 +24,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool isLoading = true;
   Map<String, dynamic> homeData = {};
+  String currencySymbol = "₹";
 
   @override
   void initState() {
     super.initState();
     fetchHomeData();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currency = prefs.getString("currency") ?? "INR (₹)";
+    final match = RegExp(r'\((.+)\)').firstMatch(currency);
+    setState(() {
+      currencySymbol = match != null ? match.group(1)! : "₹";
+    });
   }
 
   Future<void> fetchHomeData() async {
@@ -123,9 +134,8 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: selectedIndex,
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
-          // Re-fetch home data whenever the user taps back to the Home tab
           if (index == 0 && selectedIndex != 0) {
-            fetchHomeData();
+            _loadCurrencySymbol();
           }
           setState(() {
             selectedIndex = index;
@@ -209,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      formatAmount(homeData["totalBalance"]),
+                      "$currencySymbol ${homeData["totalBalance"] ?? 0}",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 34,
@@ -227,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: balanceCard(
                       title: "You Owe",
-                      amount: formatAmount(homeData["youOwe"]),
+                      amount: "$currencySymbol ${homeData["youOwe"] ?? 0}",
                       color: Colors.red,
                       cardColor: cardColor,
                       onTap: () => _showBalanceSheet(
@@ -244,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: balanceCard(
                       title: "You Get",
-                      amount: formatAmount(homeData["youGet"]),
+                      amount: "$currencySymbol ${homeData["youGet"] ?? 0}",
                       color: Colors.green,
                       cardColor: cardColor,
                       onTap: () => _showBalanceSheet(
@@ -354,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.group,
                       title: group["name"] ?? "",
                       subtitle: "${group["members"] ?? 0} members",
-                      amount: formatAmount(balance),
+                      amount: "$currencySymbol $balance",
                       color: balance >= 0 ? Colors.green : Colors.red,
                       cardColor: cardColor,
                     ),
@@ -390,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     friend["type"] == "owes_you"
                         ? "${friend["name"]} owes you"
                         : "You owe ${friend["name"]}",
-                    formatAmount(friend["amount"]),
+                    "$currencySymbol ${friend["amount"]}",
                     friend["type"] == "owes_you" ? Colors.green : Colors.red,
                   );
                 }).toList(),

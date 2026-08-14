@@ -1,13 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
-import 'package:sample/config/api.dart';
-import 'package:sample/main.dart';
+import 'package:sample/screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -160,6 +155,19 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  Future<void> _loadCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currency = prefs.getString("currency") ?? "INR (₹)";
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context); // required by AutomaticKeepAliveClientMixin
     final cardColor = Theme.of(context).cardColor;
@@ -273,11 +281,12 @@ class _ProfileScreenState extends State<ProfileScreen>
               height: 55,
               child: OutlinedButton(
                 onPressed: () async {
-                  final nav = Navigator.of(context);
                   final prefs = await SharedPreferences.getInstance();
-                  await prefs.clear();
-                  if (!mounted) return;
-                  nav.pushAndRemoveUntil(
+                  await prefs.remove("token");
+
+                  if (!context.mounted) return;
+                  Navigator.pushAndRemoveUntil(
+                    context,
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                     (route) => false,
                   );
@@ -366,7 +375,13 @@ class _ProfileScreenState extends State<ProfileScreen>
               DropdownMenuItem(value: "USD (\$)", child: Text("USD")),
               DropdownMenuItem(value: "EUR (€)", child: Text("EUR")),
             ],
-            onChanged: (value) => setState(() => currency = value!),
+            onChanged: (value) async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString("currency", value!);
+              setState(() {
+                currency = value;
+              });
+            },
           ),
         ],
       ),
