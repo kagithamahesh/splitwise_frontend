@@ -124,11 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
               children: pages,
             ),
 
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xff5B4BFF),
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {},
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   backgroundColor: const Color(0xff5B4BFF),
+      //   child: const Icon(Icons.add, color: Colors.white),
+      //   onPressed: () {},
+      // ),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
