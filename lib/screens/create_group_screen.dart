@@ -140,8 +140,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
         showSnack("Group Created Successfully");
-
         Navigator.pop(context, true);
       } else {
         showSnack(data["error"] ?? "Failed to create group");
@@ -299,47 +299,35 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   // USER LIST
                   // =====================
                   ...filteredUsers.map((user) {
-                    int id = user["id"];
-
-                    bool selected = selectedMembers.contains(id);
-
+                    final int id = user["id"];
+                    final bool selected = selectedMembers.contains(id);
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
                       ),
-
                       child: CheckboxListTile(
                         value: selected,
-
                         activeColor: const Color(0xff5B4BFF),
-
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18),
                         ),
-
                         secondary: CircleAvatar(
                           backgroundColor: const Color(0xffEEEAFE),
-
                           child: Text(
                             user["name"][0].toUpperCase(),
-
                             style: const TextStyle(
                               color: Color(0xff5B4BFF),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-
                         title: Text(
                           user["name"],
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-
                         subtitle: Text(user["email"]),
-
                         onChanged: (value) {
                           setState(() {
                             if (selected) {
@@ -351,7 +339,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                         },
                       ),
                     );
-                  }).toList(),
+                  }),
 
                   const SizedBox(height: 30),
 

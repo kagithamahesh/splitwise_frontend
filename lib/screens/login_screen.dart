@@ -47,25 +47,51 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
 
-          String token = data["token"];
-          print("hellow");
+          final String token = data["token"];
+          final user = data["user"] ?? {};
           final prefs = await SharedPreferences.getInstance();
-          print("hellow100");
           await prefs.setString("token", token);
-          debugPrint(data.toString());
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["message"] ?? "Login Success")),
-        );
+          await prefs.setString("name",  user["name"]  ?? "");
+          await prefs.setString("email", user["email"] ?? "");
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
-          ),
-        );
+          debugPrint(data.toString());
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data["message"] ?? "Login Success")),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const HomeScreen(),
+            ),
+          );
       } else {
+        final errorMessage = data["message"]?.toString().isNotEmpty == true
+            ? data["message"].toString()
+            : "Login failed. Please check your credentials.";
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["message"] ?? "Login Failed")),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    errorMessage,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         );
       }
     } catch (e) {

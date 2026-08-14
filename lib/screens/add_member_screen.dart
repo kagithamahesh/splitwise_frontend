@@ -9,10 +9,12 @@ import '../config/api.dart';
 class AddMemberScreen extends StatefulWidget {
 
   final int groupId;
+  final List members;
 
   const AddMemberScreen({
     super.key,
     required this.groupId,
+    required this.members,
   });
 
   @override
@@ -29,66 +31,84 @@ class _AddMemberScreenState
   final TextEditingController
   emailController = TextEditingController();
 
-  List<dynamic> users = [];
+  List<dynamic> allUsers = [];
+  List<dynamic> filteredUsers = [];
+  List<int> groupMemberIds = [];
 
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    groupMemberIds = widget.members
+        .map<int>((e) => e["id"] as int)
+        .toList();
+
     fetchUsers();
+    searchController.addListener(filterUsers);
   }
 
   /// FETCH USERS API
   Future<void> fetchUsers() async {
-
     try {
+      final prefs = await SharedPreferences.getInstance();
 
-      final prefs =
-      await SharedPreferences.getInstance();
-
-      String? token =
-      prefs.getString("token");
+      String? token = prefs.getString("token");
 
       final response = await http.get(
-
-        Uri.parse(
-          "${ApiConfig.baseUrl}/users",
-        ),
-
+        Uri.parse("${ApiConfig.baseUrl}/users"),
         headers: {
-          "Authorization":
-          "Bearer $token",
+          "Authorization": "Bearer $token",
         },
       );
 
       if (response.statusCode == 200) {
+        allUsers = jsonDecode(response.body);
 
         setState(() {
-
-          users =
-              jsonDecode(response.body);
+          filteredUsers = allUsers.where((user) {
+            return !groupMemberIds.contains(user["id"]);
+          }).toList();
 
           isLoading = false;
         });
-
       } else {
-
         setState(() {
           isLoading = false;
         });
-
-        print("Failed to load users");
       }
-
     } catch (e) {
-
       setState(() {
         isLoading = false;
       });
 
-      print(e);
+      debugPrint(e.toString());
     }
+  }
+
+  void filterUsers() {
+    final query = searchController.text.toLowerCase();
+
+    setState(() {
+      filteredUsers = allUsers.where((user) {
+
+        if (groupMemberIds.contains(user["id"])) {
+          return false;
+        }
+
+        final name = user["name"]
+            .toString()
+            .toLowerCase();
+
+        final email = user["email"]
+            .toString()
+            .toLowerCase();
+
+        return name.contains(query) ||
+            email.contains(query);
+
+      }).toList();
+    });
   }
 
   /// ADD MEMBER API
@@ -127,33 +147,43 @@ class _AddMemberScreenState
       if (response.statusCode == 200 ||
           response.statusCode == 201) {
 
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-
+        if (!mounted) return;
+        setState(() {
+          groupMemberIds.add(userId);
+          filteredUsers.removeWhere(
+            (user) => user["id"] == userId,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content:
-            Text("Member added"),
+            content: Text("Member added successfully"),
           ),
         );
-
       } else {
-
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content:
-            Text("Failed to add member"),
+            content: Text("Failed to add member"),
           ),
         );
       }
-
     } catch (e) {
-
-      print(e);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Something went wrong"),
+        ),
+      );
+      debugPrint(e.toString());
     }
   }
-
+  @override
+  void dispose() {
+    searchController.removeListener(filterUsers);
+    searchController.dispose();
+    emailController.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
 
@@ -259,19 +289,31 @@ class _AddMemberScreenState
             const SizedBox(height: 20),
 
             /// USERS LIST
-            ListView.builder(
+            filteredUsers.isEmpty
+                ? const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Text(
+                  "No users available",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ): ListView.builder(
 
               shrinkWrap: true,
 
               physics:
               const NeverScrollableScrollPhysics(),
 
-              itemCount: users.length,
+              itemCount: filteredUsers.length,
 
               itemBuilder: (context, index) {
 
                 final user =
-                users[index];
+                filteredUsers[index];
 
                 return Padding(
 

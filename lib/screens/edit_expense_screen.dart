@@ -1,27 +1,31 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:sample/config/api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AddExpenseScreen extends StatefulWidget {
+class EditExpenseScreen extends StatefulWidget {
   final int groupId;
+  final int expenseId;
+  final Map<String, dynamic> expense;
   final List members;
 
-  const AddExpenseScreen({
+  const EditExpenseScreen({
     super.key,
     required this.groupId,
+    required this.expenseId,
+    required this.expense,
     required this.members,
   });
 
   @override
-  State<AddExpenseScreen> createState() => _AddExpenseScreenState();
+  State<EditExpenseScreen> createState() =>
+      _EditExpenseScreenState();
 }
 
-class _AddExpenseScreenState extends State<AddExpenseScreen> {
+class _EditExpenseScreenState extends State<EditExpenseScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
@@ -36,48 +40,29 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   bool isLoading = false;
 
-  // Validation error messages
-  String? titleError;
-  String? amountError;
-  String? paidByError;
-
   @override
   void initState() {
     super.initState();
-    selectedMembers =
-        widget.members.map<int>((e) => e["id"] as int).toList();
-  }
+      titleController.text = widget.expense["description"] ?? "";
 
-  // =========================
-  // VALIDATE FIELDS
-  // =========================
-  bool _validate() {
-    bool valid = true;
+      amountController.text =
+          widget.expense["amount"].toString();
 
-    setState(() {
-      titleError = titleController.text.trim().isEmpty
-          ? "Expense title is required"
-          : null;
+      notesController.text =
+          widget.expense["notes"] ?? "";
 
-      if (amountController.text.trim().isEmpty) {
-        amountError = "Amount is required";
-        valid = false;
-      } else if (double.tryParse(amountController.text.trim()) == null ||
-          double.parse(amountController.text.trim()) <= 0) {
-        amountError = "Enter a valid amount greater than 0";
-        valid = false;
-      } else {
-        amountError = null;
-      }
+      splitType =
+          widget.expense["split_type"] ?? "equal";
 
-      paidByError = paidBy == null ? "Please select who paid" : null;
+      paidBy = widget.expense["PaidById"];
 
-      if (titleError != null || amountError != null || paidByError != null) {
-        valid = false;
-      }
-    });
+      // selectedDate =
+      //     DateTime.parse(widget.expense["created_at"]);
 
-    return valid;
+      selectedMembers = (widget.expense["members"] as List)
+          .map<int>((e) => e["id"])
+          .toList();
+
   }
 
   // =========================
@@ -99,10 +84,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   // =========================
-  // SAVE EXPENSE API
+  // UPDATE EXPENSE API
   // =========================
   Future<void> saveExpense() async {
-    if (!_validate()) return;
+    if (titleController.text.isEmpty ||
+        amountController.text.isEmpty ||
+        paidBy == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill all required fields"),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       isLoading = true;
@@ -113,14 +107,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       String? token = prefs.getString("token");
 
-      final response = await http.post(
-        Uri.parse("${ApiConfig.baseUrl}/expenses"),
+      final response = await http.put(
+        Uri.parse(
+            "${ApiConfig.baseUrl}/groups/${widget.groupId}/expenses/${widget.expenseId}"),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
         body: jsonEncode({
-          "group_id": widget.groupId,
           "description": titleController.text,
           "amount": double.parse(amountController.text),
           "paid_by": paidBy,
@@ -133,10 +127,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Expense Added Successfully"),
+            content: Text("Expense Updated Successfully"),
           ),
         );
         Navigator.pop(context, true);
@@ -163,59 +159,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     });
   }
 
-  // =========================
-  // LABEL WITH OPTIONAL RED *
-  // =========================
-  Widget _fieldLabel(String label, {bool required = false}) {
-    return RichText(
-      text: TextSpan(
-        text: label,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          color: Colors.black,
-        ),
-        children: required
-            ? const [
-                TextSpan(
-                  text: " *",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ]
-            : [],
-      ),
-    );
-  }
-
-  // =========================
-  // INLINE ERROR TEXT
-  // =========================
-  Widget _errorText(String? error) {
-    if (error == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 6, left: 4),
-      child: Text(
-        error,
-        style: const TextStyle(color: Colors.red, fontSize: 12),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      resizeToAvoidBottomInset: true,
+      backgroundColor: const Color(0xffF8F9FF),
 
       appBar: AppBar(
-        title: const Text("Add Expense"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          "Edit Expense",
+          style: TextStyle(color: Colors.black),
+        ),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
 
       body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomPadding),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(20),
 
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,106 +183,69 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // TITLE
             // =========================
-            _fieldLabel("Expense Title", required: true),
+            const Text(
+              "Expense Title",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             const SizedBox(height: 10),
 
             TextField(
               controller: titleController,
-              onChanged: (_) {
-                if (titleError != null) {
-                  setState(() => titleError = null);
-                }
-              },
               decoration: InputDecoration(
                 hintText: "Dinner, Rent, Taxi...",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: titleError != null
-                      ? const BorderSide(color: Colors.red)
-                      : BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: titleError != null
-                        ? Colors.red
-                        : const Color(0xff5B4BFF),
-                  ),
-                ),
-              ),
-            ),
-
-            _errorText(titleError),
-
-            const SizedBox(height: 20),
-
-            // =========================
-            // AMOUNT
-            // =========================
-            _fieldLabel("Amount", required: true),
-
-            const SizedBox(height: 10),
-
-            TextField(
-              controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-              onChanged: (_) {
-                if (amountError != null) {
-                  setState(() => amountError = null);
-                }
-              },
-              decoration: InputDecoration(
-                hintText: "0.00",
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: amountError != null
-                      ? const BorderSide(color: Colors.red)
-                      : BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: amountError != null
-                        ? Colors.red
-                        : const Color(0xff5B4BFF),
-                  ),
-                ),
               ),
             ),
 
-            _errorText(amountError),
+            const SizedBox(height: 20),
+
+            // =========================
+            // AMOUNT
+            // =========================
+            const Text(
+              "Amount",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: "₹ 0",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
 
             const SizedBox(height: 20),
 
             // =========================
             // PAID BY
             // =========================
-            _fieldLabel("Paid By", required: true),
+            const Text(
+              "Paid By",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             const SizedBox(height: 10),
 
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: paidByError != null
-                    ? Border.all(color: Colors.red)
-                    : null,
               ),
 
               child: DropdownButtonHideUnderline(
@@ -332,6 +255,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   hint: const Text("Select Member"),
 
                   items: widget.members.map((member) {
+
                     return DropdownMenuItem<int>(
                       value: member["id"],
                       child: Text(member["name"]),
@@ -341,21 +265,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   onChanged: (value) {
                     setState(() {
                       paidBy = value;
-                      paidByError = null;
                     });
                   },
                 ),
               ),
             ),
 
-            _errorText(paidByError),
-
             const SizedBox(height: 20),
 
             // =========================
             // SPLIT TYPE
             // =========================
-            _fieldLabel("Split Type"),
+            const Text(
+              "Split Type",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             const SizedBox(height: 10),
 
@@ -374,7 +298,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       decoration: BoxDecoration(
                         color: splitType == "equal"
                             ? const Color(0xff5B4BFF)
-                            : Theme.of(context).cardColor,
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(14),
                       ),
 
@@ -384,7 +308,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           style: TextStyle(
                             color: splitType == "equal"
                                 ? Colors.white
-                                : Theme.of(context).textTheme.bodyMedium?.color,
+                                : Colors.black,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -408,7 +332,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       decoration: BoxDecoration(
                         color: splitType == "exact"
                             ? const Color(0xff5B4BFF)
-                            : Theme.of(context).cardColor,
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(14),
                       ),
 
@@ -418,7 +342,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           style: TextStyle(
                             color: splitType == "exact"
                                 ? Colors.white
-                                : Theme.of(context).textTheme.bodyMedium?.color,
+                                : Colors.black,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -434,25 +358,26 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // MEMBERS
             // =========================
-            _fieldLabel("Split With"),
+            const Text(
+              "Split With",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             const SizedBox(height: 15),
 
             ...widget.members.map((member) {
-              bool selected = selectedMembers.contains(member["id"]);
-
+              final bool selected = selectedMembers.contains(member["id"]);
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       backgroundColor: const Color(0xffEEEAFE),
-
                       child: Text(
                         member["name"][0].toUpperCase(),
                         style: const TextStyle(
@@ -465,9 +390,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     Expanded(
                       child: Text(
                         member["name"],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                     Checkbox(
@@ -493,7 +416,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // DATE
             // =========================
-            _fieldLabel("Date"),
+            const Text(
+              "Date",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             const SizedBox(height: 10),
 
@@ -507,7 +433,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
 
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                 ),
 
@@ -515,7 +441,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        DateFormat("dd/MM/yyyy").format(selectedDate),
+                        DateFormat("dd/MM/yyyy")
+                            .format(selectedDate),
                       ),
                     ),
 
@@ -530,7 +457,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // NOTES
             // =========================
-            _fieldLabel("Notes"),
+            const Text(
+              "Notes",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
 
             const SizedBox(height: 10),
 
@@ -540,6 +470,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
               decoration: InputDecoration(
                 hintText: "Add notes here...",
+                filled: true,
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -550,7 +482,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             const SizedBox(height: 30),
 
             // =========================
-            // SAVE BUTTON
+            // UPDATE BUTTON
             // =========================
             SizedBox(
               width: double.infinity,
@@ -568,15 +500,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
                 child: isLoading
                     ? const CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                  color: Colors.white,
+                )
                     : const Text(
-                        "Save Expense",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
+                  "Update Expense",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
 

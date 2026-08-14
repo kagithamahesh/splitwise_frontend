@@ -7,13 +7,17 @@ import 'package:sample/screens/add_expense_screen.dart';
 import 'package:sample/screens/add_member_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'expense_details_screen.dart';
+
 class GroupDetailsScreen extends StatefulWidget {
 
   final int groupId;
+  final String groupName;
 
   const GroupDetailsScreen({
     super.key,
-    required this.groupId, required groupName,
+    required this.groupId,
+    required this.groupName,
   });
 
   @override
@@ -23,7 +27,7 @@ class GroupDetailsScreen extends StatefulWidget {
 
 class _GroupDetailsScreenState
     extends State<GroupDetailsScreen> {
-
+  bool isUpdated = false;
   Map<String, dynamic>? groupData;
 
   bool isLoading = true;
@@ -35,7 +39,6 @@ class _GroupDetailsScreenState
   }
 
   Future<void> fetchGroupDetails() async {
-
     try {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString("token");
@@ -60,32 +63,29 @@ class _GroupDetailsScreenState
         });
 
       } else {
-
         setState(() {
           isLoading = false;
         });
-
-        print("API Error");
       }
-
     } catch (e) {
-
       setState(() {
         isLoading = false;
       });
-
-      print(e);
+      debugPrint(e.toString());
     }
   }
-
+  String fmt(dynamic v) {
+    if (v == null) return '₹ 0';
+    final n = (v as num).toDouble();
+    return n == n.truncateToDouble()
+        ? '₹ ${n.toStringAsFixed(0)}'
+        : '₹ ${n.toStringAsFixed(2)}';
+  }
   @override
   Widget build(BuildContext context) {
-
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -102,13 +102,9 @@ class _GroupDetailsScreenState
               child: OutlinedButton.icon(
 
                 style: OutlinedButton.styleFrom(
-                  padding:
-                  const EdgeInsets.symmetric(
-                    vertical: 16,
-                  ),
-
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   side: const BorderSide(
-                    color: Colors.deepPurple,
+                    color: Color(0xff5B4BFF),
                   ),
 
                   shape: RoundedRectangleBorder(
@@ -117,13 +113,29 @@ class _GroupDetailsScreenState
                   ),
                 ),
 
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AddExpenseScreen(groupId: widget.groupId, members: groupData?['members'],))
-                  );
-                },
+                // onPressed: () {
+                //   Navigator.push(
+                //       context,
+                //       MaterialPageRoute(builder: (_) => AddExpenseScreen(groupId: widget.groupId, members: groupData?['members'],))
+                //   );
+                // },
+                onPressed: () async {
 
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddExpenseScreen(
+                        groupId: widget.groupId,
+                        members: groupData?['members'],
+                      ),
+                    ),
+                  );
+
+                  if (result == true) {
+                    isUpdated = true;
+                    fetchGroupDetails();
+                  }
+                },
                 icon:
                 const Icon(Icons.receipt_long),
 
@@ -139,16 +151,11 @@ class _GroupDetailsScreenState
 
                 style: ElevatedButton.styleFrom(
 
-                  backgroundColor:
-                  Colors.deepPurple,
+                  backgroundColor: const Color(0xff5B4BFF),
 
-                  foregroundColor:
-                  Colors.white,
+                  foregroundColor: Colors.white,
 
-                  padding:
-                  const EdgeInsets.symmetric(
-                    vertical: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
 
                   shape: RoundedRectangleBorder(
                     borderRadius:
@@ -160,7 +167,7 @@ class _GroupDetailsScreenState
 
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => AddMemberScreen(groupId: widget.groupId))
+                    MaterialPageRoute(builder: (_) => AddMemberScreen(groupId: widget.groupId, members: groupData!["members"]))
                   );
                 },
 
@@ -177,30 +184,15 @@ class _GroupDetailsScreenState
       ),
 
       appBar: AppBar(
-
-        backgroundColor: Colors.white,
-
         elevation: 0,
-
-        leading:  IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.black,
-          ),
-
-          onPressed: () {
-            Navigator.pop(context);
-          },
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context, isUpdated),
         ),
-
         title: Text(
           groupData?['name'] ?? "",
-          style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-
         centerTitle: true,
       ),
 
@@ -226,14 +218,11 @@ class _GroupDetailsScreenState
 
                 CircleAvatar(
                   radius: 40,
-
-                  backgroundColor:
-                  Colors.blue.shade100,
-
+                  backgroundColor: const Color(0xffEEEAFE),
                   child: const Icon(
                     Icons.group,
                     size: 40,
-                    color: Colors.deepPurple,
+                    color: Color(0xff5B4BFF),
                   ),
                 ),
 
@@ -279,7 +268,7 @@ class _GroupDetailsScreenState
                     title: "Total\nExpense",
 
                     amount:
-                    "₹ ${groupData?['totalExpense']}",
+                    fmt(groupData?['totalExpense']),
 
                     amountColor:
                     Colors.deepPurple,
@@ -293,7 +282,7 @@ class _GroupDetailsScreenState
                     title: "You\nOwe",
 
                     amount:
-                    "₹ ${groupData?['youOwe']}",
+                    fmt(groupData?['youOwe']),
 
                     amountColor:
                     Colors.red,
@@ -307,7 +296,7 @@ class _GroupDetailsScreenState
                     title: "You\nGet",
 
                     amount:
-                    "₹ ${groupData?['youGet']}",
+                    fmt(groupData?['youGet']),
 
                     amountColor:
                     Colors.green,
@@ -383,7 +372,24 @@ class _GroupDetailsScreenState
                 final expense =
                 groupData!['expenses'][index];
 
-                return ExpenseTile(
+                return  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async {
+
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ExpenseDetailsScreen(
+                            expenseId: expense["id"],  groupId: widget.groupId,
+                          ),
+                        ),
+                      );
+
+                      if (result == true) {
+                        fetchGroupDetails();
+                      }
+                    },
+                    child: ExpenseTile(
                   title:
                   expense['title'] ?? "",
 
@@ -395,6 +401,7 @@ class _GroupDetailsScreenState
 
                   date:
                   expense['date'] ?? "",
+                    ),
                 );
               },
             ),
@@ -431,11 +438,8 @@ class SummaryCard extends StatelessWidget {
       ),
 
       decoration: BoxDecoration(
-
-        color: Colors.grey.shade100,
-
-        borderRadius:
-        BorderRadius.circular(18),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
       ),
 
       child: Column(
@@ -488,13 +492,8 @@ class MemberTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
 
       leading: CircleAvatar(
-        backgroundColor:
-        Colors.orange.shade100,
-
-        child: const Icon(
-          Icons.person,
-          color: Colors.black,
-        ),
+        backgroundColor: const Color(0xffEEEAFE),
+        child: const Icon(Icons.person, color: Color(0xff5B4BFF)),
       ),
 
       title: Text(
@@ -592,6 +591,6 @@ class ExpenseTile extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
