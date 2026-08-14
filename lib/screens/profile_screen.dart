@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sample/screens/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,6 +13,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool darkMode = false;
   bool notifications = true;
   String currency = "INR (₹)";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  Future<void> _loadCurrency() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currency = prefs.getString("currency") ?? "INR (₹)";
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +127,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: double.infinity,
               height: 55,
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.remove("token");
+
+                  if (!context.mounted) return;
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.red),
                   shape: RoundedRectangleBorder(
@@ -192,9 +217,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Text("EUR"),
               ),
             ],
-            onChanged: (value) {
+            onChanged: (value) async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString("currency", value!);
               setState(() {
-                currency = value!;
+                currency = value;
               });
             },
           ),

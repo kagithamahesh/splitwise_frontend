@@ -23,11 +23,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool isLoading = true;
   Map<String, dynamic> homeData = {};
+  String currencySymbol = "₹";
 
   @override
   void initState() {
     super.initState();
     fetchHomeData();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currency = prefs.getString("currency") ?? "INR (₹)";
+    final match = RegExp(r'\((.+)\)').firstMatch(currency);
+    setState(() {
+      currencySymbol = match != null ? match.group(1)! : "₹";
+    });
   }
 
   Future<void> fetchHomeData() async {
@@ -99,6 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
+          if (index == 0 && selectedIndex != 0) {
+            _loadCurrencySymbol();
+          }
           setState(() {
             selectedIndex = index;
           });
@@ -176,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "₹ ${homeData["totalBalance"] ?? 0}",
+                      "$currencySymbol ${homeData["totalBalance"] ?? 0}",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 34,
@@ -194,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: balanceCard(
                       title: "You Owe",
-                      amount: "₹ ${homeData["youOwe"] ?? 0}",
+                      amount: "$currencySymbol ${homeData["youOwe"] ?? 0}",
                       color: Colors.red,
                     ),
                   ),
@@ -202,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: balanceCard(
                       title: "You Get",
-                      amount: "₹ ${homeData["youGet"] ?? 0}",
+                      amount: "$currencySymbol ${homeData["youGet"] ?? 0}",
                       color: Colors.green,
                     ),
                   ),
@@ -305,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icons.group,
                       title: group["name"] ?? "",
                       subtitle: "${group["members"] ?? 0} members",
-                      amount: "₹ $balance",
+                      amount: "$currencySymbol $balance",
                       color: balance >= 0 ? Colors.green : Colors.red,
                     ),
                   );
@@ -340,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     friend["type"] == "owes_you"
                         ? "${friend["name"]} owes you"
                         : "You owe ${friend["name"]}",
-                    "₹ ${friend["amount"]}",
+                    "$currencySymbol ${friend["amount"]}",
                     friend["type"] == "owes_you" ? Colors.green : Colors.red,
                   );
                 }).toList(),

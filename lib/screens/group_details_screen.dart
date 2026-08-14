@@ -91,8 +91,9 @@ class _GroupDetailsScreenState
 
     return Scaffold(
 
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
 
         child: Row(
           children: [
@@ -171,6 +172,7 @@ class _GroupDetailsScreenState
               ),
             ),
           ],
+        ),
         ),
       ),
 
@@ -423,9 +425,9 @@ class SummaryCard extends StatelessWidget {
 
     return Container(
 
-      padding:
-      const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: 18,
+        horizontal: 8,
       ),
 
       decoration: BoxDecoration(
@@ -437,6 +439,7 @@ class SummaryCard extends StatelessWidget {
       ),
 
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
 
           Text(
@@ -452,6 +455,7 @@ class SummaryCard extends StatelessWidget {
 
           Text(
             amount,
+            textAlign: TextAlign.center,
 
             style: TextStyle(
               color: amountColor,
@@ -524,60 +528,69 @@ class ExpenseTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    return ListTile(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
 
-      contentPadding: EdgeInsets.zero,
-
-      leading: CircleAvatar(
-        backgroundColor:
-        Colors.green.shade100,
-
-        child: const Icon(
-          Icons.receipt,
-          color: Colors.black,
-        ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
       ),
 
-      title: Text(
-        title,
+      child: ListTile(
 
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 10,
         ),
-      ),
 
-      subtitle: Text(paidBy),
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.shade100,
 
-      trailing: Column(
-
-        mainAxisAlignment:
-        MainAxisAlignment.center,
-
-        crossAxisAlignment:
-        CrossAxisAlignment.end,
-
-        children: [
-
-          Text(
-            amount,
-
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+          child: const Icon(
+            Icons.receipt,
+            color: Colors.black,
           ),
+        ),
 
-          const SizedBox(height: 4),
+        title: Text(
+          title,
 
-          Text(
-            date,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
 
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 12,
+        subtitle: Text(paidBy),
+
+        trailing: Column(
+
+          mainAxisAlignment: MainAxisAlignment.center,
+
+          crossAxisAlignment: CrossAxisAlignment.end,
+
+          children: [
+
+            Text(
+              amount,
+
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
-          )
-        ],
+
+            const SizedBox(height: 4),
+
+            Text(
+              date,
+
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:sample/config/api.dart';
@@ -35,12 +36,48 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   bool isLoading = false;
 
+  // Validation error messages
+  String? titleError;
+  String? amountError;
+  String? paidByError;
+
   @override
   void initState() {
     super.initState();
-
     selectedMembers =
         widget.members.map<int>((e) => e["id"] as int).toList();
+  }
+
+  // =========================
+  // VALIDATE FIELDS
+  // =========================
+  bool _validate() {
+    bool valid = true;
+
+    setState(() {
+      titleError = titleController.text.trim().isEmpty
+          ? "Expense title is required"
+          : null;
+
+      if (amountController.text.trim().isEmpty) {
+        amountError = "Amount is required";
+        valid = false;
+      } else if (double.tryParse(amountController.text.trim()) == null ||
+          double.parse(amountController.text.trim()) <= 0) {
+        amountError = "Enter a valid amount greater than 0";
+        valid = false;
+      } else {
+        amountError = null;
+      }
+
+      paidByError = paidBy == null ? "Please select who paid" : null;
+
+      if (titleError != null || amountError != null || paidByError != null) {
+        valid = false;
+      }
+    });
+
+    return valid;
   }
 
   // =========================
@@ -65,16 +102,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   // SAVE EXPENSE API
   // =========================
   Future<void> saveExpense() async {
-    if (titleController.text.isEmpty ||
-        amountController.text.isEmpty ||
-        paidBy == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all required fields"),
-        ),
-      );
-      return;
-    }
+    if (!_validate()) return;
 
     setState(() {
       isLoading = true;
@@ -105,8 +133,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 ||
-          response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Expense Added Successfully"),
@@ -136,6 +163,44 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     });
   }
 
+  // =========================
+  // LABEL WITH OPTIONAL RED *
+  // =========================
+  Widget _fieldLabel(String label, {bool required = false}) {
+    return RichText(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: Colors.black,
+        ),
+        children: required
+            ? const [
+                TextSpan(
+                  text: " *",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ]
+            : [],
+      ),
+    );
+  }
+
+  // =========================
+  // INLINE ERROR TEXT
+  // =========================
+  Widget _errorText(String? error) {
+    if (error == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Text(
+        error,
+        style: const TextStyle(color: Colors.red, fontSize: 12),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,15 +225,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // TITLE
             // =========================
-            const Text(
-              "Expense Title",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            _fieldLabel("Expense Title", required: true),
 
             const SizedBox(height: 10),
 
             TextField(
               controller: titleController,
+              onChanged: (_) {
+                if (titleError != null) {
+                  setState(() => titleError = null);
+                }
+              },
               decoration: InputDecoration(
                 hintText: "Dinner, Rent, Taxi...",
                 filled: true,
@@ -177,44 +244,78 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: titleError != null
+                      ? const BorderSide(color: Colors.red)
+                      : BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: titleError != null
+                        ? Colors.red
+                        : const Color(0xff5B4BFF),
+                  ),
+                ),
               ),
             ),
+
+            _errorText(titleError),
 
             const SizedBox(height: 20),
 
             // =========================
             // AMOUNT
             // =========================
-            const Text(
-              "Amount",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            _fieldLabel("Amount", required: true),
 
             const SizedBox(height: 10),
 
             TextField(
               controller: amountController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              ],
+              onChanged: (_) {
+                if (amountError != null) {
+                  setState(() => amountError = null);
+                }
+              },
               decoration: InputDecoration(
-                hintText: "₹ 0",
+                hintText: "0.00",
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: amountError != null
+                      ? const BorderSide(color: Colors.red)
+                      : BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: amountError != null
+                        ? Colors.red
+                        : const Color(0xff5B4BFF),
+                  ),
+                ),
               ),
             ),
+
+            _errorText(amountError),
 
             const SizedBox(height: 20),
 
             // =========================
             // PAID BY
             // =========================
-            const Text(
-              "Paid By",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            _fieldLabel("Paid By", required: true),
 
             const SizedBox(height: 10),
 
@@ -223,6 +324,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                border: paidByError != null
+                    ? Border.all(color: Colors.red)
+                    : null,
               ),
 
               child: DropdownButtonHideUnderline(
@@ -241,21 +345,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   onChanged: (value) {
                     setState(() {
                       paidBy = value;
+                      paidByError = null;
                     });
                   },
                 ),
               ),
             ),
 
+            _errorText(paidByError),
+
             const SizedBox(height: 20),
 
             // =========================
             // SPLIT TYPE
             // =========================
-            const Text(
-              "Split Type",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            _fieldLabel("Split Type"),
 
             const SizedBox(height: 10),
 
@@ -334,16 +438,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // MEMBERS
             // =========================
-            const Text(
-              "Split With",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            _fieldLabel("Split With"),
 
             const SizedBox(height: 15),
 
             ...widget.members.map((member) {
-              bool selected =
-              selectedMembers.contains(member["id"]);
+              bool selected = selectedMembers.contains(member["id"]);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -357,8 +457,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor:
-                      const Color(0xffEEEAFE),
+                      backgroundColor: const Color(0xffEEEAFE),
 
                       child: Text(
                         member["name"][0].toUpperCase(),
@@ -405,10 +504,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // DATE
             // =========================
-            const Text(
-              "Date",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            _fieldLabel("Date"),
 
             const SizedBox(height: 10),
 
@@ -430,8 +526,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        DateFormat("dd/MM/yyyy")
-                            .format(selectedDate),
+                        DateFormat("dd/MM/yyyy").format(selectedDate),
                       ),
                     ),
 
@@ -446,10 +541,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             // =========================
             // NOTES
             // =========================
-            const Text(
-              "Notes",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            _fieldLabel("Notes"),
 
             const SizedBox(height: 10),
 
@@ -489,15 +581,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
                 child: isLoading
                     ? const CircularProgressIndicator(
-                  color: Colors.white,
-                )
+                        color: Colors.white,
+                      )
                     : const Text(
-                  "Save Expense",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
+                        "Save Expense",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
               ),
             ),
 
