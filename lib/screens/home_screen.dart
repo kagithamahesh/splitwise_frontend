@@ -373,37 +373,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 28),
 
-              const Text(
-                "Friends",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
+              // const Text(
+              //   "Friends",
+              //   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              // ),
 
-              const SizedBox(height: 15),
-
-              if (friends.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    "No friends added yet",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-
-              if (friends.isNotEmpty)
-                ...friends.map<Widget>((friend) {
-                  return friendTile(
-                    friend["type"] == "owes_you"
-                        ? "${friend["name"]} owes you"
-                        : "You owe ${friend["name"]}",
-                    "$currencySymbol ${friend["amount"]}",
-                    friend["type"] == "owes_you" ? Colors.green : Colors.red,
-                  );
-                }).toList(),
+              // const SizedBox(height: 15),
+              //
+              // if (friends.isEmpty)
+              //   Container(
+              //     width: double.infinity,
+              //     padding: const EdgeInsets.all(18),
+              //     decoration: BoxDecoration(
+              //       color: cardColor,
+              //       borderRadius: BorderRadius.circular(20),
+              //     ),
+              //     child: const Text(
+              //       "No friends added yet",
+              //       style: TextStyle(color: Colors.grey),
+              //     ),
+              //   ),
+              //
+              // if (friends.isNotEmpty)
+              //   ...friends.map<Widget>((friend) {
+              //     return friendTile(
+              //       friend["type"] == "owes_you"
+              //           ? "${friend["name"]} owes you"
+              //           : "You owe ${friend["name"]}",
+              //       "$currencySymbol ${friend["amount"]}",
+              //       friend["type"] == "owes_you" ? Colors.green : Colors.red,
+              //     );
+              //   }).toList(),
 
               const SizedBox(height: 90),
             ],
