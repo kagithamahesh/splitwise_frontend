@@ -189,11 +189,6 @@ class _GroupDetailsScreenState
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context, isUpdated),
         ),
-        title: Text(
-          groupData?['name'] ?? "",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
       ),
 
       body: SingleChildScrollView(

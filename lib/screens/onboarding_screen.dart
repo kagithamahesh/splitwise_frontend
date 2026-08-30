@@ -9,25 +9,59 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _controller = PageController();
+  final PageController _pageController = PageController();
+
   int currentPage = 0;
 
-  final List<Map<String, String>> pages = [
+  static const Color primaryBlue = Color(0xff06477F);
+
+  final List<Map<String, String>> onboardingData = [
     {
       "title": "Track Shared Expenses",
-      "subtitle": "Keep all group spending organized in one place.",
+      "description":
+      "Keep all group spending organized in one place.",
     },
     {
       "title": "Split Bills Easily",
-      "subtitle": "Divide rent, food, trips and more instantly.",
+      "description":
+      "Divide rent, food, trips and more instantly.",
     },
     {
       "title": "Settle Fast",
-      "subtitle": "See balances and settle payments smoothly.",
+      "description":
+      "See balances and settle payments smoothly.",
     },
   ];
 
-  void _goToLogin() {
+  // ============================================================
+  // GO TO NEXT PAGE
+  // ============================================================
+
+  void nextPage() {
+    if (currentPage < 2) {
+      _pageController.animateToPage(
+        currentPage + 1,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      goToLogin();
+    }
+  }
+
+  // ============================================================
+  // SKIP
+  // ============================================================
+
+  void skipOnboarding() {
+    goToLogin();
+  }
+
+  // ============================================================
+  // GO TO LOGIN
+  // ============================================================
+
+  void goToLogin() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -36,137 +70,319 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void nextPage() {
-    if (currentPage < pages.length - 1) {
-      _controller.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      _goToLogin();
-    }
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF8F9FF),
+
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: _goToLogin,
-                  child: const Text("Skip"),
+        child: Stack(
+          children: [
+
+            // ====================================================
+            // PAGES
+            // ====================================================
+
+            PageView(
+              controller: _pageController,
+
+              onPageChanged: (index) {
+                setState(() {
+                  currentPage = index;
+                });
+              },
+
+              children: [
+                buildPage(
+                  title: "Track Shared Expenses",
+                  description:
+                  "Keep all group spending organized in one place.",
+                ),
+
+                buildPage(
+                  title: "Split Bills Easily",
+                  description:
+                  "Divide rent, food, trips and more instantly.",
+                ),
+
+                buildPage(
+                  title: "Settle Fast",
+                  description:
+                  "See balances and settle payments smoothly.",
+                ),
+              ],
+            ),
+
+            // ====================================================
+            // SKIP
+            // ====================================================
+
+            Positioned(
+              top: 8,
+              right: 16,
+
+              child: TextButton(
+                onPressed: skipOnboarding,
+
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize:
+                  MaterialTapTargetSize.shrinkWrap,
+                ),
+
+                child: const Text(
+                  "Skip",
+
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: primaryBlue,
+                  ),
                 ),
               ),
+            ),
 
-              Expanded(
-                child: PageView.builder(
-                  controller: _controller,
-                  itemCount: pages.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      currentPage = index;
-                    });
-                  },
-                  itemBuilder: (context, index) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          height: 220,
-                          width: 220,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: const [
-                              BoxShadow(
-                                blurRadius: 15,
-                                color: Colors.black12,
-                              )
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.account_balance_wallet,
-                            size: 100,
-                            color: Color(0xff5B4BFF),
-                          ),
+            // ====================================================
+            // BOTTOM CONTROLS
+            // ====================================================
+
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 2,
+
+              child: Column(
+                children: [
+
+                  // ==================================================
+                  // DOTS
+                  // ==================================================
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+
+                    children: [
+                      buildDot(0),
+                      buildDot(1),
+                      buildDot(2),
+                    ],
+                  ),
+
+                  const SizedBox(height: 29),
+
+                  // ==================================================
+                  // BUTTON
+                  // ==================================================
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+
+                    child: ElevatedButton(
+                      onPressed: nextPage,
+
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 1,
+
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(17),
                         ),
+                      ),
 
-                        const SizedBox(height: 40),
+                      child: Text(
+                        currentPage == 2
+                            ? "Get Started"
+                            : "Next",
 
-                        Text(
-                          pages[index]["title"]!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                        const SizedBox(height: 15),
+  // ============================================================
+  // ONBOARDING PAGE
+  // ============================================================
 
-                        Text(
-                          pages[index]["subtitle"]!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
+  Widget buildPage({
+    required String title,
+    required String description,
+  }) {
+    return Column(
+      children: [
+
+        // ========================================================
+        // TOP SPACE
+        // ========================================================
+
+        const SizedBox(height: 70),
+
+        // ========================================================
+        // LOGO
+        // ========================================================
+
+        Expanded(
+          flex: 5,
+
+          child: Center(
+            child: Container(
+              width: 220,
+              height: 220,
+
+              decoration: BoxDecoration(
+                color: Colors.white,
+
+                borderRadius:
+                BorderRadius.circular(30),
+
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x18000000),
+                    blurRadius: 18,
+                    spreadRadius: 1,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+
+              padding: const EdgeInsets.all(15),
+
+              child: ClipRRect(
+                borderRadius:
+                BorderRadius.circular(15),
+
+                child: Image.asset(
+                  "assets/split.png",
+
+                  fit: BoxFit.contain,
+
+                  errorBuilder:
+                      (context, error, stackTrace) {
+                    return const Center(
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
                     );
                   },
                 ),
               ),
+            ),
+          ),
+        ),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  pages.length,
-                      (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 5),
-                    width: currentPage == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: currentPage == index
-                          ? const Color(0xff5B4BFF)
-                          : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
+        // ========================================================
+        // TEXT
+        // ========================================================
+
+        Expanded(
+          flex: 3,
+
+          child: Column(
+            children: [
+
+              Text(
+                title,
+
+                textAlign: TextAlign.center,
+
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xff202127),
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 15),
 
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: nextPage,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff5B4BFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  child: Text(
-                    currentPage == pages.length - 1
-                        ? "Get Started"
-                        : "Next",
-                    style: const TextStyle(fontSize: 18,color: Colors.white),
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(
+                  horizontal: 25,
+                ),
+
+                child: Text(
+                  description,
+
+                  textAlign: TextAlign.center,
+
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xff9B9BA0),
                   ),
                 ),
               ),
             ],
           ),
         ),
+
+        // ========================================================
+        // BOTTOM SPACE
+        // ========================================================
+
+        const SizedBox(height: 150),
+      ],
+    );
+  }
+
+  // ============================================================
+  // DOT
+  // ============================================================
+
+  Widget buildDot(int index) {
+    final bool active = currentPage == index;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+
+      margin: const EdgeInsets.symmetric(
+        horizontal: 4,
+      ),
+
+      width: active ? 24 : 8,
+      height: 8,
+
+      decoration: BoxDecoration(
+        color: active
+            ? primaryBlue
+            : const Color(0xffD9DCE2),
+
+        borderRadius:
+        BorderRadius.circular(10),
       ),
     );
   }
