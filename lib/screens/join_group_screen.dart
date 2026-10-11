@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -21,78 +20,53 @@ class JoinGroupScreen extends StatefulWidget {
 }
 
 class _JoinGroupScreenState extends State<JoinGroupScreen> {
-  bool isLoading = false;
+  bool loading = false;
   String? errorMessage;
 
   Future<void> joinGroup() async {
     setState(() {
-      isLoading = true;
+      loading = true;
       errorMessage = null;
     });
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = prefs.getString('token') ?? '';
 
-      if (token == null || token.isEmpty) {
-        if (!mounted) return;
-
-        setState(() {
-          isLoading = false;
-          errorMessage = 'Please log in to join this group.';
-        });
-        return;
-      }
-
-      // IMPORTANT:
-      // Replace this endpoint and request format with your
-      // actual Go join-group route and authentication scheme.
       final response = await http.post(
-        Uri.parse(
-          '${ApiConfig.baseUrl}/invites/${widget.inviteCode}/join',
-        ),
+        Uri.parse('${ApiConfig.baseUrl}/invites/${widget.inviteCode}/join'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
 
-      final dynamic decoded = jsonDecode(response.body);
+      if (!mounted) return;
 
-      if (response.statusCode == 200 ||
-          response.statusCode == 201) {
-        if (!mounted) return;
-
+      if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Successfully joined group')),
         );
-
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => const HomeScreen(),
-          ),
-              (route) => false,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
         );
       } else {
+        final decoded = jsonDecode(response.body);
         setState(() {
           errorMessage = decoded is Map
-              ? (decoded['message']?.toString() ??
-              'Unable to join group.')
+              ? (decoded['message']?.toString() ?? 'Unable to join group.')
               : 'Unable to join group.';
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          errorMessage = 'Unable to join group. Please try again.';
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        errorMessage = 'Unable to join this group. '
+            'The invite may be invalid or expired.';
+      });
     } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -114,10 +88,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               const SizedBox(height: 20),
               const Text(
                 'You have been invited!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               const Text(
@@ -136,8 +107,8 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: isLoading ? null : joinGroup,
-                  child: isLoading
+                  onPressed: loading ? null : joinGroup,
+                  child: loading
                       ? const CircularProgressIndicator()
                       : const Text('Join Group'),
                 ),

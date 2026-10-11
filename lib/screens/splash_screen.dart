@@ -5,16 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
-import 'login_screen.dart';
-import 'join_group_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  final String? inviteCode;
-
-  const SplashScreen({
-    super.key,
-    this.inviteCode,
-  });
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -26,7 +19,6 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-
     _timer = Timer(
       const Duration(seconds: 2),
       _navigateFromSplash,
@@ -39,34 +31,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    final inviteCode = widget.inviteCode;
-
-    if (inviteCode != null && inviteCode.isNotEmpty) {
-      if (token == null || token.isEmpty) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => LoginScreen(
-              inviteCode: inviteCode,
-            ),
-          ),
-        );
-      } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => JoinGroupScreen(
-              inviteCode: inviteCode,
-            ),
-          ),
-        );
-      }
-
-      return;
-    }
-
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) =>
-        token != null && token.isNotEmpty
+        builder: (_) => token != null && token.isNotEmpty
             ? const HomeScreen()
             : const OnboardingScreen(),
       ),
