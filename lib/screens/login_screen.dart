@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:sample/config/api.dart';
 import 'package:sample/screens/home_screen.dart';
@@ -26,9 +27,16 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool hidePassword = true;
   bool isLoading = false;
+  bool isGoogleLoading = false;
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
+  static final _googleSignIn = GoogleSignIn(
+    clientId:
+        '700529917766-oatvfilrlpm2begpvdfd9mdumkb89g3b.apps.googleusercontent.com',
+    scopes: ['email', 'profile'],
+  );
 
   // ================= LOGIN =================
 
@@ -135,6 +143,96 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text("Error: $e"),
         ),
       );
+    }
+  }
+
+  // ================= GOOGLE LOGIN =================
+
+  Future<void> loginWithGoogle() async {
+    setState(() => isGoogleLoading = true);
+
+    try {
+      // Trigger the Google sign-in flow.
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // User cancelled the picker.
+        setState(() => isGoogleLoading = false);
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+
+      // On Flutter Web, idToken is null — only accessToken is available.
+      // Send whichever is present; the backend handles both.
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+
+      if (idToken == null && accessToken == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google sign-in failed. Try again.")),
+        );
+        setState(() => isGoogleLoading = false);
+        return;
+      }
+
+      // Send the ID token to the backend for verification.
+      final response = await http.post(
+        Uri.parse("${ApiConfig.baseUrl}/auth/google"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "idToken": idToken,
+          "accessToken": accessToken,
+        }),
+      );
+
+      if (!mounted) return;
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        final String token = data["token"];
+        final user = data["user"] ?? {};
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString("token", token);
+        await prefs.setString("name", user["name"] ?? googleUser.displayName ?? "");
+        await prefs.setString("email", user["email"] ?? googleUser.email);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Signed in with Google!")),
+        );
+
+        final code = widget.inviteCode;
+        if (code != null && code.isNotEmpty) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => JoinGroupScreen(inviteCode: code),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data["error"] ?? "Google login failed."),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Google sign-in error: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => isGoogleLoading = false);
     }
   }
 
@@ -498,16 +596,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 69,
 
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: isGoogleLoading ? null : loginWithGoogle,
 
-                  icon: const Text(
-                    "G",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff5A58A1),
-                    ),
-                  ),
+                  icon: isGoogleLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Color(0xff5A58A1),
+                          ),
+                        )
+                      : const Text(
+                          "G",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xff5A58A1),
+                          ),
+                        ),
 
                   label: const Text(
                     "Continue with Google",
