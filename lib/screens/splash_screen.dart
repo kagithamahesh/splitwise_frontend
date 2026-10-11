@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
 
@@ -12,26 +14,36 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
+    _timer = Timer(
+      const Duration(seconds: 2),
+      _navigateFromSplash,
+    );
+  }
 
-    Timer(const Duration(seconds: 2), () async {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString("token");
+  Future<void> _navigateFromSplash() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              token != null && token.isNotEmpty
-                  ? const HomeScreen()
-                  : const OnboardingScreen(),
-        ),
-      );
-    });
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => token != null && token.isNotEmpty
+            ? const HomeScreen()
+            : const OnboardingScreen(),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -54,37 +66,31 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              "assets/split.png",
+              'assets/split.jpeg',
               width: 130,
             ),
-
             const SizedBox(height: 20),
-
             const Text(
-              "Split Money",
+              'Split Money',
               style: TextStyle(
                 fontSize: 34,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 10),
-
             const Text(
-              "Split expenses easily\nwith your people",
+              'Split expenses easily\nwith your people',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.white70,
               ),
             ),
-
             const SizedBox(height: 40),
-
             const CircularProgressIndicator(
               color: Colors.white,
-            )
+            ),
           ],
         ),
       ),

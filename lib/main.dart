@@ -1,23 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'config/invite.dart';
+import 'screens/join_group_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/splash_screen.dart';
 
 /// Global notifier so any screen can toggle the theme.
 final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.light);
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Restore saved theme preference.
-  final prefs = await SharedPreferences.getInstance();
-  final isDark = prefs.getBool('darkMode') ?? false;
-  themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
-
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _restoreTheme();
+  }
+
+  Future<void> _restoreTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDark = prefs.getBool('darkMode') ?? false;
+    themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,9 +132,63 @@ class MyApp extends StatelessWidget {
             ),
           ),
 
-          home: const SplashScreen(),
+          home: const InviteEntryScreen(),
         );
       },
+    );
+  }
+}
+
+// ── Invite entry point ────────────────────────────────────────────────────────
+// Shown for one frame while the URL and session are inspected.
+// Immediately replaces itself with the correct screen.
+
+class InviteEntryScreen extends StatefulWidget {
+  const InviteEntryScreen({super.key});
+
+  @override
+  State<InviteEntryScreen> createState() => _InviteEntryScreenState();
+}
+
+class _InviteEntryScreenState extends State<InviteEntryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleEntry());
+  }
+
+  Future<void> _handleEntry() async {
+    final inviteToken = getInviteTokenFromUrl();
+
+    if (!mounted) return;
+
+    if (inviteToken != null) {
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = (prefs.getString('token') ?? '').isNotEmpty;
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => isLoggedIn
+              ? JoinGroupScreen(inviteCode: inviteToken)
+              : LoginScreen(inviteCode: inviteToken),
+        ),
+      );
+      return;
+    }
+
+    // No invite in the URL — normal startup.
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const SplashScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Shown for at most one frame before navigation replaces it.
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

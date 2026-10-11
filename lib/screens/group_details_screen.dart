@@ -8,6 +8,7 @@ import 'package:sample/screens/add_member_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'expense_details_screen.dart';
+import 'invite_people_screen.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
 
@@ -74,6 +75,43 @@ class _GroupDetailsScreenState
       debugPrint(e.toString());
     }
   }
+  Future<void> _shareInvite() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token") ?? "";
+
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/groups/${widget.groupId}/invite"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final inviteUrl = body["data"]["inviteUrl"] as String;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvitePeopleScreen(inviteLink: inviteUrl),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to generate invite link.")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Something went wrong.")),
+      );
+    }
+  }
+
   String fmt(dynamic v) {
     if (v == null) return '₹ 0';
     final n = (v as num).toDouble();
@@ -189,6 +227,18 @@ class _GroupDetailsScreenState
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context, isUpdated),
         ),
+        title: Text(
+          groupData?['name'] ?? "",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: "Invite via link",
+            icon: const Icon(Icons.share_outlined),
+            onPressed: _shareInvite,
+          ),
+        ],
       ),
 
       body: SingleChildScrollView(

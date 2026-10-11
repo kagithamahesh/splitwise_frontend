@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:sample/config/api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'invite_people_screen.dart';
+
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
 
@@ -15,153 +17,90 @@ class CreateGroupScreen extends StatefulWidget {
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final TextEditingController groupNameController = TextEditingController();
 
-  final TextEditingController searchController = TextEditingController();
-
-  bool isLoading = false;
   bool isCreating = false;
-
-  List users = [];
-  List filteredUsers = [];
-
-  List<int> selectedMembers = [];
-
-  @override
-  void initState() {
-    super.initState();
-    fetchUsers();
-  }
 
   @override
   void dispose() {
     groupNameController.dispose();
-    searchController.dispose();
     super.dispose();
-  }
-
-  // ==========================
-  // FETCH USERS
-  // ==========================
-  Future<void> fetchUsers() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      String? token = prefs.getString("token");
-
-      final response = await http.get(
-        Uri.parse("${ApiConfig.baseUrl}/users"),
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-        },
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (!mounted) return;
-
-        setState(() {
-          users = data ?? [];
-
-          filteredUsers = users;
-        });
-      } else {
-        showSnack("Failed to fetch users");
-      }
-    } catch (e) {
-      showSnack(e.toString());
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      isLoading = false;
-    });
-  }
-
-  // ==========================
-  // SEARCH USERS
-  // ==========================
-  void filterUsers(String value) {
-    setState(() {
-      filteredUsers = users.where((user) {
-        final name = user["name"].toString().toLowerCase();
-
-        final email = user["email"].toString().toLowerCase();
-
-        return name.contains(value.toLowerCase()) ||
-            email.contains(value.toLowerCase());
-      }).toList();
-    });
   }
 
   // ==========================
   // CREATE GROUP
   // ==========================
+
   Future<void> createGroup() async {
-    if (groupNameController.text.trim().isEmpty) {
+    final groupName = groupNameController.text.trim();
+
+    if (groupName.isEmpty) {
       showSnack("Enter group name");
-
       return;
     }
 
-    if (selectedMembers.isEmpty) {
-      showSnack("Select at least one member");
-
-      return;
-    }
-
-    setState(() {
-      isCreating = true;
-    });
+    setState(() => isCreating = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token") ?? "";
 
-      String? token = prefs.getString("token");
-
-      final response = await http.post(
+      // Step 1 — create the group, get back the groupId.
+      final createResponse = await http.post(
         Uri.parse("${ApiConfig.baseUrl}/groups"),
         headers: {
           "Authorization": "Bearer $token",
           "Content-Type": "application/json",
         },
-        body: jsonEncode({
-          "name": groupNameController.text.trim(),
-
-          "members": selectedMembers,
-        }),
+        body: jsonEncode({"name": groupName}),
       );
 
-      final data = jsonDecode(response.body);
+      final createData = jsonDecode(createResponse.body);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (createResponse.statusCode != 201 && createResponse.statusCode != 200) {
         if (!mounted) return;
-        showSnack("Group Created Successfully");
-        Navigator.pop(context, true);
+        showSnack(createData["error"] ?? "Failed to create group");
+        return;
+      }
+
+      final groupId = createData["data"]["groupId"] as int;
+
+      // Step 2 — fetch the invite link for the newly created group.
+      final inviteResponse = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/groups/$groupId/invite"),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (!mounted) return;
+
+      if (inviteResponse.statusCode == 200 || inviteResponse.statusCode == 201) {
+        final inviteData = jsonDecode(inviteResponse.body);
+        final inviteUrl = inviteData["data"]["inviteUrl"] as String;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvitePeopleScreen(inviteLink: inviteUrl),
+          ),
+        );
       } else {
-        showSnack(data["error"] ?? "Failed to create group");
+        showSnack("Group created but failed to generate invite link.");
       }
     } catch (e) {
-      showSnack(e.toString());
+      if (!mounted) return;
+      showSnack("Something went wrong: $e");
+    } finally {
+      if (mounted) setState(() => isCreating = false);
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      isCreating = false;
-    });
   }
 
   // ==========================
   // SNACKBAR
   // ==========================
-  void showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  void showSnack(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -172,220 +111,130 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-
         iconTheme: const IconThemeData(color: Colors.black),
-
         title: const Text(
           "Create Group",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
 
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Create a new group",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 8),
+
+            const Text(
+              "Create the group and invite people using a shareable link.",
+              style: TextStyle(color: Colors.grey),
+            ),
+
+            const SizedBox(height: 30),
+
+            const Text(
+              "Group Name",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: groupNameController,
+              decoration: InputDecoration(
+                hintText: "Flatmates / Trip / Office",
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(20),
-
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
                 children: [
-                  // =====================
-                  // GROUP NAME
-                  // =====================
-                  const Text(
-                    "Group Name",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffEEEAFE),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.link, color: Color(0xff5B4BFF)),
                   ),
-
-                  const SizedBox(height: 10),
-
-                  TextField(
-                    controller: groupNameController,
-
-                    decoration: InputDecoration(
-                      hintText: "Flatmates / Trip / Office",
-
-                      filled: true,
-                      fillColor: Colors.white,
-
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
-                      ),
+                  const SizedBox(width: 15),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Invite people later",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          "After creating the group, you can share an invite link with anyone.",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(height: 25),
-
-                  // =====================
-                  // SEARCH
-                  // =====================
-                  TextField(
-                    controller: searchController,
-
-                    onChanged: filterUsers,
-
-                    decoration: InputDecoration(
-                      hintText: "Search users",
-
-                      prefixIcon: const Icon(Icons.search),
-
-                      filled: true,
-                      fillColor: Colors.white,
-
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-                    children: [
-                      const Text(
-                        "Select Members",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-
-                      Text(
-                        "${selectedMembers.length} Selected",
-                        style: const TextStyle(
-                          color: Color(0xff5B4BFF),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  // =====================
-                  // EMPTY USERS
-                  // =====================
-                  if (filteredUsers.isEmpty)
-                    Container(
-                      width: double.infinity,
-
-                      padding: const EdgeInsets.all(25),
-
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-
-                      child: const Column(
-                        children: [
-                          Icon(Icons.group_off, size: 60, color: Colors.grey),
-
-                          SizedBox(height: 10),
-
-                          Text(
-                            "No Users Found",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  // =====================
-                  // USER LIST
-                  // =====================
-                  ...filteredUsers.map((user) {
-                    final int id = user["id"];
-                    final bool selected = selectedMembers.contains(id);
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: CheckboxListTile(
-                        value: selected,
-                        activeColor: const Color(0xff5B4BFF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        secondary: CircleAvatar(
-                          backgroundColor: const Color(0xffEEEAFE),
-                          child: Text(
-                            user["name"][0].toUpperCase(),
-                            style: const TextStyle(
-                              color: Color(0xff5B4BFF),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          user["name"],
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(user["email"]),
-                        onChanged: (value) {
-                          setState(() {
-                            if (selected) {
-                              selectedMembers.remove(id);
-                            } else {
-                              selectedMembers.add(id);
-                            }
-                          });
-                        },
-                      ),
-                    );
-                  }),
-
-                  const SizedBox(height: 30),
-
-                  // =====================
-                  // BUTTON
-                  // =====================
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-
-                    child: ElevatedButton(
-                      onPressed: isCreating ? null : createGroup,
-
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff5B4BFF),
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-
-                      child: isCreating
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              "Create Group",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
                 ],
               ),
             ),
+
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: isCreating ? null : createGroup,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff5B4BFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: isCreating
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Create Group",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

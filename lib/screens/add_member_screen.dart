@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api.dart';
+import 'invite_people_screen.dart';
 
 class AddMemberScreen extends StatefulWidget {
 
@@ -25,17 +26,17 @@ class AddMemberScreen extends StatefulWidget {
 class _AddMemberScreenState
     extends State<AddMemberScreen> {
 
-  final TextEditingController
-  searchController = TextEditingController();
-
-  final TextEditingController
-  emailController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
 
   List<dynamic> allUsers = [];
   List<dynamic> filteredUsers = [];
   List<int> groupMemberIds = [];
 
   bool isLoading = true;
+
+  // ── Invite link state ──────────────────────────────────────────
+  String? _inviteUrl;
+  bool _inviteLoading = true;
 
   @override
   void initState() {
@@ -45,7 +46,46 @@ class _AddMemberScreenState
         .toList();
 
     fetchUsers();
+    _fetchInviteLink();
     searchController.addListener(filterUsers);
+  }
+
+  Future<void> _fetchInviteLink() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token") ?? "";
+
+      final response = await http.get(
+        Uri.parse("${ApiConfig.baseUrl}/groups/${widget.groupId}/invite"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200 && mounted) {
+        final body = jsonDecode(response.body);
+        setState(() {
+          _inviteUrl = body["data"]["inviteUrl"] as String;
+          _inviteLoading = false;
+        });
+      } else {
+        if (mounted) setState(() => _inviteLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _inviteLoading = false);
+      debugPrint("Invite link fetch error: $e");
+    }
+  }
+
+  void _openInviteScreen() {
+    if (_inviteUrl == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InvitePeopleScreen(inviteLink: _inviteUrl!),
+      ),
+    );
   }
 
   /// FETCH USERS API
@@ -181,7 +221,6 @@ class _AddMemberScreenState
   void dispose() {
     searchController.removeListener(filterUsers);
     searchController.dispose();
-    emailController.dispose();
     super.dispose();
   }
   @override
@@ -242,6 +281,49 @@ class _AddMemberScreenState
           CrossAxisAlignment.start,
 
           children: [
+
+            /// ── INVITE LINK SECTION ──────────────────────────────
+            const Text(
+              "Invite via Link",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            if (_inviteLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (_inviteUrl == null)
+              const Text(
+                "Could not generate invite link.",
+                style: TextStyle(color: Colors.grey),
+              )
+            else ...[
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: _openInviteScreen,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xff5B4BFF),
+                    side: const BorderSide(color: Color(0xff5B4BFF)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.share_outlined),
+                  label: const Text("Invite via Link"),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 30),
+
+            const Divider(),
+
+            const SizedBox(height: 20),
 
             /// SEARCH
             TextField(
@@ -435,84 +517,6 @@ class _AddMemberScreenState
               },
             ),
 
-            const SizedBox(height: 40),
-
-            /// INVITE TITLE
-            const Text(
-              "Invite by Email",
-
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight:
-                FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            /// EMAIL FIELD
-            TextField(
-
-              controller:
-              emailController,
-
-              decoration: InputDecoration(
-
-                hintText:
-                "Enter email address",
-
-                filled: true,
-
-                fillColor:
-                Colors.grey.shade100,
-
-                border: OutlineInputBorder(
-
-                  borderRadius:
-                  BorderRadius.circular(14),
-
-                  borderSide:
-                  BorderSide.none,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            /// SEND INVITE BUTTON
-            SizedBox(
-
-              width: double.infinity,
-              height: 55,
-
-              child: ElevatedButton(
-
-                style:
-                ElevatedButton.styleFrom(
-
-                  backgroundColor:
-                  Colors.deepPurple,
-
-                  foregroundColor:
-                  Colors.white,
-
-                  shape:
-                  RoundedRectangleBorder(
-
-                    borderRadius:
-                    BorderRadius.circular(
-                      14,
-                    ),
-                  ),
-                ),
-
-                onPressed: () {},
-
-                child: const Text(
-                  "Send Invite",
-                ),
-              ),
-            ),
           ],
         ),
       ),

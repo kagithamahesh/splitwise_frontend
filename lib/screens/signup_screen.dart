@@ -4,12 +4,19 @@ import 'package:http/http.dart' as http;
 import 'package:sample/config/api.dart';
 import 'package:sample/screens/login_screen.dart';
 
+
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  final String? inviteCode;
+
+  const SignupScreen({
+    super.key,
+    this.inviteCode,
+  });
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
+
 
 class _SignupScreenState extends State<SignupScreen> {
   bool hidePassword = true;
@@ -53,7 +60,9 @@ class _SignupScreenState extends State<SignupScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => const LoginScreen(),
+            builder: (_) => LoginScreen(
+              inviteCode: widget.inviteCode,
+            ),
           ),
         );
       } else {
@@ -248,7 +257,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
+                          builder: (_) => const LoginScreen(inviteCode: '',),
                         ),
                       );
                     },
