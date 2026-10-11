@@ -286,7 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   if (!context.mounted) return;
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    MaterialPageRoute(builder: (_) => const LoginScreen(inviteCode: '',)),
                     (route) => false,
                   );
                 },

@@ -7,12 +7,21 @@ import 'package:sample/screens/home_screen.dart';
 import 'package:sample/screens/signup_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'join_group_screen.dart';
+
+
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? inviteCode;
+
+  const LoginScreen({
+    super.key,
+    this.inviteCode,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
 
 class _LoginScreenState extends State<LoginScreen> {
   bool hidePassword = true;
@@ -59,13 +68,22 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(data["message"] ?? "Login Success")),
           );
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const HomeScreen(),
-            ),
-          );
+          final code = widget.inviteCode;
+          if (code != null && code.isNotEmpty) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => JoinGroupScreen(inviteCode: code),
+              ),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const HomeScreen(),
+              ),
+            );
+          }
       } else {
         final errorMessage = data["message"]?.toString().isNotEmpty == true
             ? data["message"].toString()

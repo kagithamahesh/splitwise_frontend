@@ -134,6 +134,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Expense Added Successfully"),

@@ -1,6 +1,6 @@
 class ApiConfig {
   static const String baseUrl =
-      "http://192.168.1.37:8080";
+      "http://192.168.1.34:8080";
 // }
 // static const String baseUrl =
 //     "https://splitwise-6poo.onrender.com";
